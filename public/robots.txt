@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://LOTUSzzzzzz.github.io/gif/sitemap.xml
