@@ -391,7 +391,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">G</span>
-          GIF 阵列工坊
+          GIF Array Workshop
         </div>
         <div className="topbar-note">所有处理均在本地浏览器完成</div>
       </header>
