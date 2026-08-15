@@ -202,6 +202,23 @@ button:disabled {
   flex: 0 0 auto;
 }
 
+.asset-thumb {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.rotation-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #0d9488;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .thumb-fallback {
   width: 52px;
   height: 52px;
@@ -229,6 +246,12 @@ button:disabled {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.asset-rotation {
+  color: #0d9488;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .icon-btn {

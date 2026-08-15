@@ -59,11 +59,16 @@ export function AssetList({
               onDragEnd={() => setDragIndex(null)}
             >
               <GripVertical className="drag-icon" size={15} aria-hidden />
-              {asset.previewUrl ? (
-                <img src={asset.previewUrl} alt="" />
-              ) : (
-                <div className="thumb-fallback" />
-              )}
+              <div className="asset-thumb">
+                {asset.previewUrl ? (
+                  <img src={asset.previewUrl} alt="" />
+                ) : (
+                  <div className="thumb-fallback" />
+                )}
+                {asset.rotation !== 0 && (
+                  <span className="rotation-badge">{asset.rotation}°</span>
+                )}
+              </div>
               <div className="asset-info">
                 <div className="asset-name" title={asset.name}>
                   {asset.name}
@@ -73,6 +78,7 @@ export function AssetList({
                     ? `${asset.meta.width}×${asset.meta.height} · ${asset.meta.frameCount} 帧 · ${formatMs(asset.meta.durationMs)} · ${formatBytes(asset.meta.sizeBytes)}`
                     : "解析中…"}
                 </div>
+                <div className="asset-rotation">旋转 {asset.rotation}°</div>
               </div>
               <button
                 type="button"
