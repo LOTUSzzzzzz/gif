@@ -101,26 +101,20 @@ export default function App() {
   const applyPrepared = useCallback(
     async (msg: Extract<WorkerResponse, { type: "prepared" }>) => {
       const metaById = new Map(msg.meta.map((m) => [m.id, m.meta]));
-      setAssets((prev) =>
-        prev.map((a) =>
-          metaById.has(a.id) ? { ...a, meta: metaById.get(a.id)! } : a,
-        ),
-      );
-      setEstimatedMemory(msg.estimatedMemoryBytes);
-      setSelectedAssetId((prev) => prev ?? (msg.meta[0]?.id ?? null));
       const urlById = new Map(
         msg.thumbnails.map((t) => [t.id, bitmapToDataUrl(t.bitmap)]),
       );
-      setAssets((prev) =>
-        prev.map((a) =>
-          urlById.has(a.id)
-            ? { ...a, previewUrl: urlById.get(a.id)! }
-            : a,
-        ),
-      );
+      const next = assetsRef.current.map((a) => ({
+        ...a,
+        meta: metaById.get(a.id) ?? a.meta,
+        previewUrl: urlById.get(a.id) ?? a.previewUrl,
+      }));
+      updateAssets(next);
+      setEstimatedMemory(msg.estimatedMemoryBytes);
+      setSelectedAssetId((prev) => prev ?? (msg.meta[0]?.id ?? null));
       setPreparing(false);
     },
-    [],
+    [updateAssets],
   );
 
   const requestPreview = useCallback((t: number) => {

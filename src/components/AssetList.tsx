@@ -25,7 +25,7 @@ export function AssetList({
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>素材（{assets.length}）</h2>
+        <h2>已导入的GIF（{assets.length}）</h2>
         {assets.length > 0 && (
           <button type="button" className="link-btn" onClick={onClear}>
             清空
