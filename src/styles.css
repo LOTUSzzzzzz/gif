@@ -465,6 +465,39 @@ input[type="range"] {
   background: #e8f5f2;
 }
 
+.export-name-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e7ed;
+  border-radius: 8px;
+}
+
+.export-name-bar label {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+}
+
+.export-name-bar input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e2e7ed;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #344054;
+}
+
+.export-name-bar span {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
 body.dragging-split {
   cursor: row-resize;
   user-select: none;

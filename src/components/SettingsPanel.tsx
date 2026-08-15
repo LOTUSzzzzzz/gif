@@ -3,7 +3,6 @@ import type { GridConfig } from "../types";
 
 interface SettingsPanelProps {
   config: GridConfig;
-  selectedAssetName: string | null;
   rotation: number;
   onRotationChange: (degrees: number) => void;
   onChange: (patch: Partial<GridConfig>) => void;
@@ -87,7 +86,6 @@ function GridNumberField({
 
 export function SettingsPanel({
   config,
-  selectedAssetName,
   rotation,
   onRotationChange,
   onChange,
@@ -127,11 +125,7 @@ export function SettingsPanel({
         value={rotation}
         min={0}
         max={360}
-        hint={
-          selectedAssetName
-            ? `作用于「${selectedAssetName}」`
-            : "先在素材列表中点击选择一个 GIF"
-        }
+        hint="作用于选中的 GIF，可单独设置每个素材"
         normalize={(n) => ((Math.round(n) % 360) + 360) % 360}
         disabled={disabled}
         onChange={onRotationChange}

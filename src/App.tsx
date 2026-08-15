@@ -20,7 +20,7 @@ import { PreviewStage } from "./components/PreviewStage";
 import { ExportPanel } from "./components/ExportPanel";
 import { computeExportTimeline } from "./lib/timeline";
 import { computeOutputSize } from "./lib/layout";
-import { formatBytes, formatMs } from "./lib/format";
+import { buildExportFileName, formatBytes, formatMs } from "./lib/format";
 
 const DEFAULT_CONFIG: GridConfig = {
   columns: 1,
@@ -69,6 +69,8 @@ export default function App() {
   });
   const [result, setResult] = useState<ExportStats | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [exportName, setExportName] = useState("");
+  const [exportFileName, setExportFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -254,6 +256,8 @@ export default function App() {
         break;
       case "exported": {
         const blob = new Blob([msg.bytes], { type: "image/gif" });
+        const fileName = buildExportFileName(exportName);
+        setExportFileName(fileName);
         setDownloadUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
           return URL.createObjectURL(blob);
@@ -366,6 +370,7 @@ export default function App() {
     if (!worker || !canExport) return;
     setPlaying(false);
     setResult(null);
+    setExportFileName("");
     setError(null);
     setDownloadUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -445,7 +450,6 @@ export default function App() {
           />
           <SettingsPanel
             config={config}
-            selectedAssetName={selectedAsset?.name ?? null}
             rotation={selectedAsset?.rotation ?? 0}
             onRotationChange={changeRotation}
             onChange={(patch) => setConfig((c) => ({ ...c, ...patch }))}
@@ -490,6 +494,19 @@ export default function App() {
           >
             <GripHorizontal size={16} />
           </div>
+          <div className="export-name-bar">
+            <label htmlFor="exportName">导出名称</label>
+            <input
+              id="exportName"
+              type="text"
+              value={exportName}
+              maxLength={60}
+              placeholder="gif-grid（留空使用默认名称）"
+              disabled={exporting}
+              onChange={(e) => setExportName(e.target.value)}
+            />
+            <span>自动追加时间戳</span>
+          </div>
           <ExportPanel
             exporting={exporting}
             progress={{
@@ -501,6 +518,7 @@ export default function App() {
             downloadUrl={downloadUrl}
             error={error}
             height={exportHeight}
+            fileName={exportFileName}
             onCancel={() => workerRef.current?.postMessage({ type: "cancel" })}
           />
         </main>

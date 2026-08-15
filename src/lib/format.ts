@@ -18,3 +18,13 @@ export function formatReduction(before: number, after: number): string {
   const pct = ((before - after) / before) * 100;
   return `${pct >= 0 ? "缩小" : "增大"} ${Math.abs(pct).toFixed(1)}%`;
 }
+
+export function buildExportFileName(customName: string): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+    now.getDate(),
+  )}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const base = customName.trim() || "gif-grid";
+  return `${base}_${timestamp}.gif`;
+}

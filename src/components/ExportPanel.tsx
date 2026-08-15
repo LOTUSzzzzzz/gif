@@ -9,6 +9,7 @@ interface ExportPanelProps {
   downloadUrl: string | null;
   error: string | null;
   height: number;
+  fileName: string;
   onCancel: () => void;
 }
 
@@ -19,6 +20,7 @@ export function ExportPanel({
   downloadUrl,
   error,
   height,
+  fileName,
   onCancel,
 }: ExportPanelProps) {
   if (exporting) {
@@ -47,7 +49,7 @@ export function ExportPanel({
       <section className="export-panel" style={{ height, overflowY: "auto" }}>
         <div className="export-head">
           <h2>导出结果</h2>
-          <a className="primary-btn" href={downloadUrl} download="gif-grid.gif">
+          <a className="primary-btn" href={downloadUrl} download={fileName}>
             <Download size={16} /> 下载 GIF（{formatBytes(result.finalSizeBytes)}）
           </a>
         </div>
