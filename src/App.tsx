@@ -70,6 +70,7 @@ export default function App() {
   const [result, setResult] = useState<ExportStats | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageColRef = useRef<HTMLElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -149,6 +150,7 @@ export default function App() {
           file,
           meta: null,
           previewUrl: null,
+          rotation: 0,
         })),
       ];
       updateAssets(next);
@@ -160,6 +162,7 @@ export default function App() {
   const removeAsset = useCallback(
     (id: string) => {
       const next = assetsRef.current.filter((a) => a.id !== id);
+      setSelectedAssetId((prev) => (prev === id ? null : prev));
       updateAssets(next);
       void sendPrepare(next);
     },
@@ -168,6 +171,7 @@ export default function App() {
 
   const clearAssets = useCallback(() => {
     updateAssets([]);
+    setSelectedAssetId(null);
     setEstimatedMemory(0);
     setResult(null);
     setDownloadUrl((prev) => {
@@ -187,6 +191,24 @@ export default function App() {
       ids: next.map((a) => a.id),
     });
   }, [updateAssets]);
+
+  const changeRotation = useCallback(
+    (degrees: number) => {
+      if (!selectedAssetId) return;
+      const next = assetsRef.current.map((a) =>
+        a.id === selectedAssetId ? { ...a, rotation: degrees } : a,
+      );
+      updateAssets(next);
+      workerRef.current?.postMessage({
+        type: "rotations",
+        rotations: [{ id: selectedAssetId, angle: degrees }],
+      });
+    },
+    [selectedAssetId, updateAssets],
+  );
+
+  const selectedAsset =
+    assets.find((a) => a.id === selectedAssetId) ?? null;
 
   useEffect(() => {
     const worker = new Worker(
@@ -410,12 +432,17 @@ export default function App() {
           )}
           <AssetList
             assets={assets}
+            selectedId={selectedAssetId}
+            onSelect={setSelectedAssetId}
             onRemove={removeAsset}
             onReorder={reorderAssets}
             onClear={clearAssets}
           />
           <SettingsPanel
             config={config}
+            selectedAssetName={selectedAsset?.name ?? null}
+            rotation={selectedAsset?.rotation ?? 0}
+            onRotationChange={changeRotation}
             onChange={(patch) => setConfig((c) => ({ ...c, ...patch }))}
             disabled={exporting}
           />

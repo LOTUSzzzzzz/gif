@@ -5,6 +5,8 @@ import { formatBytes, formatMs } from "../lib/format";
 
 interface AssetListProps {
   assets: GifAsset[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onReorder: (from: number, to: number) => void;
   onClear: () => void;
@@ -12,6 +14,8 @@ interface AssetListProps {
 
 export function AssetList({
   assets,
+  selectedId,
+  onSelect,
   onRemove,
   onReorder,
   onClear,
@@ -35,8 +39,11 @@ export function AssetList({
           {assets.map((asset, index) => (
             <li
               key={asset.id}
-              className={`asset-card${dragIndex === index ? " dragging" : ""}`}
+              className={`asset-card${dragIndex === index ? " dragging" : ""}${
+                selectedId === asset.id ? " selected" : ""
+              }`}
               draggable
+              onClick={() => onSelect(asset.id)}
               onDragStart={(e) => {
                 setDragIndex(index);
                 e.dataTransfer.effectAllowed = "move";
@@ -71,7 +78,10 @@ export function AssetList({
                 type="button"
                 className="icon-btn"
                 title="移除"
-                onClick={() => onRemove(asset.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(asset.id);
+                }}
               >
                 <Trash2 size={15} />
               </button>

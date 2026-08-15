@@ -3,6 +3,9 @@ import type { GridConfig } from "../types";
 
 interface SettingsPanelProps {
   config: GridConfig;
+  selectedAssetName: string | null;
+  rotation: number;
+  onRotationChange: (degrees: number) => void;
   onChange: (patch: Partial<GridConfig>) => void;
   disabled?: boolean;
 }
@@ -80,6 +83,9 @@ function GridNumberField({
 
 export function SettingsPanel({
   config,
+  selectedAssetName,
+  rotation,
+  onRotationChange,
   onChange,
   disabled,
 }: SettingsPanelProps) {
@@ -109,6 +115,21 @@ export function SettingsPanel({
         hint="0 表示自动，最多 50 行"
         disabled={disabled}
         onChange={(rows) => onChange({ rows })}
+      />
+
+      <GridNumberField
+        id="rotation"
+        label="旋转角度"
+        value={rotation}
+        min={-180}
+        max={180}
+        hint={
+          selectedAssetName
+            ? `作用于「${selectedAssetName}」`
+            : "先在素材列表中点击选择一个 GIF"
+        }
+        disabled={disabled || !selectedAssetName}
+        onChange={onRotationChange}
       />
 
       <div className="field">

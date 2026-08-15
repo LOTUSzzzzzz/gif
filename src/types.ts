@@ -12,6 +12,7 @@ export interface GifAsset {
   file: File;
   meta: GifMeta | null;
   previewUrl: string | null;
+  rotation: number;
 }
 
 export interface GridConfig {
@@ -53,6 +54,7 @@ export interface ExportStats {
 export type WorkerRequest =
   | { type: "prepare"; assets: Array<{ id: string; buffer: ArrayBuffer }> }
   | { type: "reorder"; ids: string[] }
+  | { type: "rotations"; rotations: Array<{ id: string; angle: number }> }
   | { type: "preview"; t: number; width: number; height: number; config: GridConfig }
   | { type: "export"; config: GridConfig }
   | { type: "cancel" };

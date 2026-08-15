@@ -26,6 +26,7 @@ interface PreparedAsset {
   id: string;
   player: GifPlayer;
   sizeBytes: number;
+  rotation: number;
 }
 
 interface RefLuma {
@@ -71,9 +72,22 @@ function drawGrid(
       geometry.cellWidth,
       geometry.cellHeight,
     );
-    const x = geometry.offsetX + column * (geometry.cellWidth + config.gap) + rect.x;
-    const y = geometry.offsetY + row * (geometry.cellHeight + config.gap) + rect.y;
-    target.drawImage(player.canvas, x, y, rect.width, rect.height);
+    const cellX = geometry.offsetX + column * (geometry.cellWidth + config.gap);
+    const cellY = geometry.offsetY + row * (geometry.cellHeight + config.gap);
+    const angleRad = ((asset.rotation || 0) * Math.PI) / 180;
+    const centerX = cellX + geometry.cellWidth / 2;
+    const centerY = cellY + geometry.cellHeight / 2;
+    target.save();
+    target.translate(centerX, centerY);
+    target.rotate(angleRad);
+    target.drawImage(
+      player.canvas,
+      rect.x - geometry.cellWidth / 2,
+      rect.y - geometry.cellHeight / 2,
+      rect.width,
+      rect.height,
+    );
+    target.restore();
   }
 }
 
@@ -153,7 +167,12 @@ function prepare(payloads: Array<{ id: string; buffer: ArrayBuffer }>): void {
         sizeBytes: payload.buffer.byteLength,
       };
       estimatedMemoryBytes += player.frameCount * player.width * player.height * 4;
-      next.push({ id: payload.id, player, sizeBytes: payload.buffer.byteLength });
+      next.push({
+        id: payload.id,
+        player,
+        sizeBytes: payload.buffer.byteLength,
+        rotation: 0,
+      });
       metas.push({ id: payload.id, meta });
       thumbnails.push({ id: payload.id, bitmap: makeThumbnail(player, 160) });
     }
@@ -345,6 +364,15 @@ ctx.onmessage = (event: MessageEvent<WorkerRequest>) => {
       assets = assets
         .slice()
         .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      break;
+    }
+    case "rotations": {
+      const angleById = new Map(request.rotations.map((r) => [r.id, r.angle]));
+      for (const asset of assets) {
+        if (angleById.has(asset.id)) {
+          asset.rotation = angleById.get(asset.id) ?? 0;
+        }
+      }
       break;
     }
     case "preview":
