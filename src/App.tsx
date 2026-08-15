@@ -30,7 +30,7 @@ const DEFAULT_CONFIG: GridConfig = {
   scale: 1,
   maxDurationSec: 5,
   sampleIntervalMs: 20,
-  ssimThreshold: 0.99,
+  ssimThreshold: 1,
 };
 
 const MEMORY_WARN = 300 * 1024 * 1024;

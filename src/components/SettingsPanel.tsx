@@ -9,9 +9,7 @@ interface SettingsPanelProps {
   disabled?: boolean;
 }
 
-const SCALES = [0.25, 0.5, 0.75, 1];
 const DURATIONS = [5, 10, 20, 30, 60, 120];
-const INTERVALS = [20, 50, 100];
 
 interface GridNumberFieldProps {
   id: string;
@@ -42,8 +40,7 @@ function GridNumberField({
     setText(String(value));
   }, [value]);
 
-  const clamp = (n: number) =>
-    Math.max(min, Math.min(max, Math.round(n)));
+  const clamp = (n: number) => Math.max(min, Math.min(max, Math.round(n)));
 
   const handleChange = (raw: string) => {
     setText(raw);
@@ -162,23 +159,6 @@ export function SettingsPanel({
       </div>
 
       <div className="field">
-        <label>输出大小</label>
-        <div className="segmented">
-          {SCALES.map((scale) => (
-            <button
-              key={scale}
-              type="button"
-              className={config.scale === scale ? "active" : ""}
-              disabled={disabled}
-              onClick={() => onChange({ scale })}
-            >
-              {Math.round(scale * 100)}%
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="field">
         <label htmlFor="maxDuration">时长上限</label>
         <select
           id="maxDuration"
@@ -192,41 +172,6 @@ export function SettingsPanel({
             </option>
           ))}
         </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="interval">采样间隔</label>
-        <select
-          id="interval"
-          value={config.sampleIntervalMs}
-          disabled={disabled}
-          onChange={(e) =>
-            onChange({ sampleIntervalMs: Number(e.target.value) })
-          }
-        >
-          {INTERVALS.map((i) => (
-            <option key={i} value={i}>
-              {i}ms
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="field">
-        <label htmlFor="threshold">
-          画质阈值 <span className="value">{config.ssimThreshold.toFixed(2)}</span>
-        </label>
-        <input
-          id="threshold"
-          type="range"
-          min={0.9}
-          max={0.99}
-          step={0.01}
-          value={config.ssimThreshold}
-          disabled={disabled}
-          onChange={(e) => onChange({ ssimThreshold: Number(e.target.value) })}
-        />
-        <p className="field-hint">高于阈值的压缩档才会被选中，越高越接近原画</p>
       </div>
     </section>
   );
