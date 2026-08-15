@@ -105,6 +105,7 @@ export default function App() {
         ),
       );
       setEstimatedMemory(msg.estimatedMemoryBytes);
+      setSelectedAssetId((prev) => prev ?? (msg.meta[0]?.id ?? null));
       const urlById = new Map(
         msg.thumbnails.map((t) => [t.id, bitmapToDataUrl(t.bitmap)]),
       );
@@ -154,6 +155,7 @@ export default function App() {
         })),
       ];
       updateAssets(next);
+      setSelectedAssetId((prev) => prev ?? next[0]?.id ?? null);
       await sendPrepare(next);
     },
     [sendPrepare, updateAssets],
@@ -162,7 +164,9 @@ export default function App() {
   const removeAsset = useCallback(
     (id: string) => {
       const next = assetsRef.current.filter((a) => a.id !== id);
-      setSelectedAssetId((prev) => (prev === id ? null : prev));
+      setSelectedAssetId((prev) =>
+        prev === id ? (next[0]?.id ?? null) : prev,
+      );
       updateAssets(next);
       void sendPrepare(next);
     },
@@ -195,13 +199,14 @@ export default function App() {
   const changeRotation = useCallback(
     (degrees: number) => {
       if (!selectedAssetId) return;
+      const normalized = ((Math.round(degrees) % 360) + 360) % 360;
       const next = assetsRef.current.map((a) =>
-        a.id === selectedAssetId ? { ...a, rotation: degrees } : a,
+        a.id === selectedAssetId ? { ...a, rotation: normalized } : a,
       );
       updateAssets(next);
       workerRef.current?.postMessage({
         type: "rotations",
-        rotations: [{ id: selectedAssetId, angle: degrees }],
+        rotations: [{ id: selectedAssetId, angle: normalized }],
       });
     },
     [selectedAssetId, updateAssets],

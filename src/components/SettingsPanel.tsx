@@ -20,6 +20,7 @@ interface GridNumberFieldProps {
   value: number;
   min: number;
   max: number;
+  normalize?: (value: number) => number;
   hint?: string;
   disabled?: boolean;
   onChange: (value: number) => void;
@@ -31,6 +32,7 @@ function GridNumberField({
   value,
   min,
   max,
+  normalize,
   hint,
   disabled,
   onChange,
@@ -47,7 +49,9 @@ function GridNumberField({
   const handleChange = (raw: string) => {
     setText(raw);
     const n = Number(raw);
-    if (Number.isFinite(n)) onChange(clamp(n));
+    if (Number.isFinite(n)) {
+      onChange(normalize ? normalize(n) : clamp(n));
+    }
   };
 
   const handleBlur = () => {
@@ -56,7 +60,7 @@ function GridNumberField({
       setText(String(value));
       return;
     }
-    const next = clamp(n);
+    const next = normalize ? normalize(n) : clamp(n);
     setText(String(next));
     onChange(next);
   };
@@ -121,14 +125,15 @@ export function SettingsPanel({
         id="rotation"
         label="旋转角度"
         value={rotation}
-        min={-180}
-        max={180}
+        min={0}
+        max={360}
         hint={
           selectedAssetName
             ? `作用于「${selectedAssetName}」`
             : "先在素材列表中点击选择一个 GIF"
         }
-        disabled={disabled || !selectedAssetName}
+        normalize={(n) => ((Math.round(n) % 360) + 360) % 360}
+        disabled={disabled}
         onChange={onRotationChange}
       />
 
