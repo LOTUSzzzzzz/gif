@@ -186,6 +186,12 @@ button:disabled {
   border-style: dashed;
 }
 
+.asset-card.selected {
+  border-color: #0f766e;
+  background: #b8e8e0;
+  box-shadow: inset 3px 0 0 #0d9488;
+}
+
 .drag-icon {
   flex: 0 0 auto;
   color: #98a2b3;
