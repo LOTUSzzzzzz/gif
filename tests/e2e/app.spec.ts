@@ -47,6 +47,27 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
 
   await page.setInputFiles('input[type="file"]', fixtures);
   await expect(page.locator(".asset-card")).toHaveCount(4);
+  const speedInput = page.locator("#speed");
+  await expect(speedInput).toHaveValue("1");
+  await speedInput.fill("2");
+  await speedInput.blur();
+  await expect(
+    page.locator(".asset-card .asset-rotation").first(),
+  ).toContainText("2倍");
+  await page.getByRole("button", { name: "作用所有GIF" }).click();
+  await expect(
+    page.locator(".asset-card .asset-rotation").nth(1),
+  ).toContainText("2倍");
+  await speedInput.fill("3");
+  await speedInput.blur();
+  await expect(
+    page.locator(".asset-card .asset-rotation").nth(1),
+  ).toContainText("3倍");
+  const selectedBackground = await page.evaluate(() => {
+    const card = document.querySelector(".asset-card.selected");
+    return card ? getComputedStyle(card).backgroundColor : "";
+  });
+  expect(selectedBackground).toBe("rgb(219, 234, 254)");
   await expect(page.locator(".asset-card .asset-meta").first()).toContainText(
     "帧",
   );

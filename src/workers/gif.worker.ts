@@ -33,6 +33,7 @@ interface PreparedAsset {
   player: GifPlayer;
   sizeBytes: number;
   rotation: number;
+  speed: number;
 }
 
 interface RefLuma {
@@ -79,7 +80,7 @@ function drawGrid(
     const player = asset.player;
     const column = i % geometry.columns;
     const row = Math.floor(i / geometry.columns);
-    player.ensureFrame(player.frameIndexAt(t));
+    player.ensureFrame(player.frameIndexAt(t * (asset.speed || 1)));
     const rect = containRect(
       player.width,
       player.height,
@@ -164,7 +165,14 @@ function measureSsim(
   );
 }
 
-function prepare(payloads: Array<{ id: string; buffer: ArrayBuffer }>): void {
+function prepare(
+  payloads: Array<{
+    id: string;
+    buffer: ArrayBuffer;
+    rotation?: number;
+    speed?: number;
+  }>,
+): void {
   try {
     const next: PreparedAsset[] = [];
     const thumbnails: Array<{ id: string; bitmap: ImageBitmap }> = [];
@@ -185,7 +193,8 @@ function prepare(payloads: Array<{ id: string; buffer: ArrayBuffer }>): void {
         id: payload.id,
         player,
         sizeBytes: payload.buffer.byteLength,
-        rotation: 0,
+        rotation: payload.rotation ?? 0,
+        speed: payload.speed ?? 1,
       });
       metas.push({ id: payload.id, meta });
       thumbnails.push({ id: payload.id, bitmap: makeThumbnail(player, 160) });
@@ -236,7 +245,7 @@ async function exportGif(config: GridConfig): Promise<void> {
       cellCount,
     );
     const timeline = computeExportTimeline(
-      assets.map((a) => a.player.durationMs),
+      assets.map((a) => a.player.durationMs / (a.speed || 1)),
       config.maxDurationSec * 1000,
       intervalMs,
     );
@@ -563,6 +572,15 @@ ctx.onmessage = (event: MessageEvent<WorkerRequest>) => {
       for (const asset of assets) {
         if (angleById.has(asset.id)) {
           asset.rotation = angleById.get(asset.id) ?? 0;
+        }
+      }
+      break;
+    }
+    case "speeds": {
+      const speedById = new Map(request.speeds.map((r) => [r.id, r.speed]));
+      for (const asset of assets) {
+        if (speedById.has(asset.id)) {
+          asset.speed = Math.max(1, Math.min(5, speedById.get(asset.id) ?? 1));
         }
       }
       break;

@@ -189,9 +189,9 @@ button:disabled {
 }
 
 .asset-card.selected {
-  border-color: #0f766e;
-  background: #b8e8e0;
-  box-shadow: inset 3px 0 0 #0d9488;
+  border-color: #60a5fa;
+  background: #dbeafe;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 .drag-icon {
@@ -301,6 +301,30 @@ button:disabled {
 .field .value {
   font-weight: 500;
   color: #0d9488;
+}
+
+.speed-mode-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.speed-mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475467;
+  font-size: 12px;
+  text-align: center;
+}
+
+.speed-mode-btn.active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
 .field-hint {

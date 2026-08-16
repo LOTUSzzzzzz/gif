@@ -13,6 +13,7 @@ export interface GifAsset {
   meta: GifMeta | null;
   previewUrl: string | null;
   rotation: number;
+  speed: number;
 }
 
 export interface GridConfig {
@@ -52,9 +53,18 @@ export interface ExportStats {
 }
 
 export type WorkerRequest =
-  | { type: "prepare"; assets: Array<{ id: string; buffer: ArrayBuffer }> }
+  | {
+      type: "prepare";
+      assets: Array<{
+        id: string;
+        buffer: ArrayBuffer;
+        rotation?: number;
+        speed?: number;
+      }>;
+    }
   | { type: "reorder"; ids: string[] }
   | { type: "rotations"; rotations: Array<{ id: string; angle: number }> }
+  | { type: "speeds"; speeds: Array<{ id: string; speed: number }> }
   | { type: "preview"; t: number; width: number; height: number; config: GridConfig }
   | { type: "export"; config: GridConfig }
   | { type: "cancel" };

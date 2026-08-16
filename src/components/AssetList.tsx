@@ -78,7 +78,9 @@ export function AssetList({
                     ? `${asset.meta.width}×${asset.meta.height} · ${asset.meta.frameCount} 帧 · ${formatMs(asset.meta.durationMs)} · ${formatBytes(asset.meta.sizeBytes)}`
                     : "解析中…"}
                 </div>
-                <div className="asset-rotation">旋转 {asset.rotation}°</div>
+                <div className="asset-rotation">
+                  旋转 {asset.rotation}° · {asset.speed}倍
+                </div>
               </div>
               <button
                 type="button"

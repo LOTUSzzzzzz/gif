@@ -86,6 +86,7 @@ export default function App() {
   const [exportTimestamp, setExportTimestamp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [speedMode, setSpeedMode] = useState<"single" | "all">("single");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageColRef = useRef<HTMLElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -105,7 +106,12 @@ export default function App() {
     if (!worker) return;
     setPreparing(true);
     const buffers = await Promise.all(list.map((a) => a.file.arrayBuffer()));
-    const payloads = list.map((a, i) => ({ id: a.id, buffer: buffers[i] }));
+    const payloads = list.map((a, i) => ({
+      id: a.id,
+      buffer: buffers[i],
+      rotation: a.rotation ?? 0,
+      speed: a.speed ?? 1,
+    }));
     worker.postMessage(
       { type: "prepare", assets: payloads },
       payloads.map((p) => p.buffer),
@@ -171,6 +177,7 @@ export default function App() {
           meta: null,
           previewUrl: null,
           rotation: 0,
+          speed: 1,
         })),
       ];
       updateAssets(next);
@@ -226,6 +233,41 @@ export default function App() {
       workerRef.current?.postMessage({
         type: "rotations",
         rotations: [{ id: selectedAssetId, angle: normalized }],
+      });
+    },
+    [selectedAssetId, updateAssets],
+  );
+
+  const changeSpeed = useCallback(
+    (speed: number) => {
+      const clamped = Math.max(1, Math.min(5, Math.round(speed)));
+      const matches =
+        speedMode === "all"
+          ? () => true
+          : (a: GifAsset) => a.id === selectedAssetId;
+      const next = assetsRef.current.map((a) =>
+        matches(a) ? { ...a, speed: clamped } : a,
+      );
+      updateAssets(next);
+      const speeds = next
+        .filter((a) => speedMode === "all" || a.id === selectedAssetId)
+        .map((a) => ({ id: a.id, speed: a.speed }));
+      workerRef.current?.postMessage({ type: "speeds", speeds });
+    },
+    [selectedAssetId, speedMode, updateAssets],
+  );
+
+  const changeSpeedMode = useCallback(
+    (mode: "single" | "all") => {
+      setSpeedMode(mode);
+      if (mode !== "all") return;
+      const value =
+        assetsRef.current.find((a) => a.id === selectedAssetId)?.speed ?? 1;
+      const next = assetsRef.current.map((a) => ({ ...a, speed: value }));
+      updateAssets(next);
+      workerRef.current?.postMessage({
+        type: "speeds",
+        speeds: next.map((a) => ({ id: a.id, speed: a.speed })),
       });
     },
     [selectedAssetId, updateAssets],
@@ -318,7 +360,7 @@ export default function App() {
       cellCount,
     );
     return computeExportTimeline(
-      assets.map((a) => a.meta?.durationMs ?? 0),
+      assets.map((a) => (a.meta?.durationMs ?? 0) / (a.speed ?? 1)),
       config.maxDurationSec * 1000,
       intervalMs,
     );
@@ -507,7 +549,11 @@ export default function App() {
           <SettingsPanel
             config={config}
             rotation={selectedAsset?.rotation ?? 0}
+            speed={selectedAsset?.speed ?? 1}
+            speedMode={speedMode}
+            onSpeedModeChange={changeSpeedMode}
             onRotationChange={changeRotation}
+            onSpeedChange={changeSpeed}
             onChange={(patch) => setConfig((c) => ({ ...c, ...patch }))}
             disabled={exporting}
           />

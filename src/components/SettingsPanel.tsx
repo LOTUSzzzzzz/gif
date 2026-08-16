@@ -4,7 +4,11 @@ import type { GridConfig } from "../types";
 interface SettingsPanelProps {
   config: GridConfig;
   rotation: number;
+  speed: number;
+  speedMode: "single" | "all";
+  onSpeedModeChange: (mode: "single" | "all") => void;
   onRotationChange: (degrees: number) => void;
+  onSpeedChange: (speed: number) => void;
   onChange: (patch: Partial<GridConfig>) => void;
   disabled?: boolean;
 }
@@ -82,10 +86,86 @@ function GridNumberField({
   );
 }
 
+function SpeedField({
+  value,
+  mode,
+  onModeChange,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  mode: "single" | "all";
+  onModeChange: (mode: "single" | "all") => void;
+  onChange: (speed: number) => void;
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState(String(value));
+
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  const clamp = (n: number) => Math.max(1, Math.min(5, Math.round(n)));
+
+  const handleChange = (raw: string) => {
+    setText(raw);
+    const n = Number(raw);
+    if (Number.isFinite(n)) onChange(clamp(n));
+  };
+
+  const handleBlur = () => {
+    const n = Number(text);
+    const next = Number.isFinite(n) ? clamp(n) : value;
+    setText(String(next));
+    if (Number.isFinite(n)) onChange(next);
+  };
+
+  return (
+    <div className="field">
+      <label htmlFor="speed">倍速</label>
+      <div className="speed-mode-row">
+        <button
+          type="button"
+          className={`speed-mode-btn${mode === "single" ? " active" : ""}`}
+          disabled={disabled}
+          onClick={() => onModeChange("single")}
+        >
+          作用单个GIF
+        </button>
+        <button
+          type="button"
+          className={`speed-mode-btn${mode === "all" ? " active" : ""}`}
+          disabled={disabled}
+          onClick={() => onModeChange("all")}
+        >
+          作用所有GIF
+        </button>
+      </div>
+      <input
+        id="speed"
+        className="number-input"
+        type="number"
+        min={1}
+        max={5}
+        step={1}
+        value={text}
+        disabled={disabled}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+      />
+      <p className="field-hint">默认1倍速，最高5倍速</p>
+    </div>
+  );
+}
+
 export function SettingsPanel({
   config,
   rotation,
+  speed,
+  speedMode,
+  onSpeedModeChange,
   onRotationChange,
+  onSpeedChange,
   onChange,
   disabled,
 }: SettingsPanelProps) {
@@ -127,6 +207,14 @@ export function SettingsPanel({
         normalize={(n) => ((Math.round(n) % 360) + 360) % 360}
         disabled={disabled}
         onChange={onRotationChange}
+      />
+
+      <SpeedField
+        value={speed}
+        mode={speedMode}
+        onModeChange={onSpeedModeChange}
+        onChange={onSpeedChange}
+        disabled={disabled}
       />
 
       <div className="field">
