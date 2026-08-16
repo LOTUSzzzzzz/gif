@@ -170,7 +170,9 @@ export function SettingsPanel({
             disabled={disabled || config.backgroundColor === "transparent"}
             onChange={(e) => onChange({ backgroundColor: e.target.value })}
           />
-          <code>{config.backgroundColor}</code>
+          {config.backgroundColor !== "transparent" && (
+            <code>{config.backgroundColor}</code>
+          )}
         </div>
       </div>
 

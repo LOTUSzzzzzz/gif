@@ -245,7 +245,10 @@ export default function App() {
         const canvas = canvasRef.current;
         if (canvas) {
           const target = canvas.getContext("2d");
-          if (target) target.drawImage(msg.bitmap, 0, 0);
+          if (target) {
+            target.clearRect(0, 0, canvas.width, canvas.height);
+            target.drawImage(msg.bitmap, 0, 0);
+          }
         }
         msg.bitmap.close();
         previewPendingRef.current = false;
