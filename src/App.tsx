@@ -31,7 +31,7 @@ const DEFAULT_CONFIG: GridConfig = {
   columns: 1,
   rows: 1,
   gap: 0,
-  backgroundColor: "#ffffff",
+  backgroundColor: "transparent",
   scale: 1,
   maxDurationSec: 5,
   sampleIntervalMs: 50,
