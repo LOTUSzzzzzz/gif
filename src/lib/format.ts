@@ -25,6 +25,13 @@ export function buildExportFileName(customName: string): string {
   const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
     now.getDate(),
   )}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return buildExportFileNameWithTimestamp(customName, timestamp);
+}
+
+export function buildExportFileNameWithTimestamp(
+  customName: string,
+  timestamp: string,
+): string {
   const base = customName.trim() || "gif-grid";
   return `${base}_${timestamp}.gif`;
 }

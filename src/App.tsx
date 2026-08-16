@@ -20,7 +20,11 @@ import { PreviewStage } from "./components/PreviewStage";
 import { ExportPanel } from "./components/ExportPanel";
 import { computeExportTimeline } from "./lib/timeline";
 import { computeOutputSize } from "./lib/layout";
-import { buildExportFileName, formatBytes, formatMs } from "./lib/format";
+import {
+  buildExportFileNameWithTimestamp,
+  formatBytes,
+  formatMs,
+} from "./lib/format";
 
 const DEFAULT_CONFIG: GridConfig = {
   columns: 1,
@@ -44,6 +48,14 @@ function bitmapToDataUrl(bitmap: ImageBitmap): string {
   const target = canvas.getContext("2d")!;
   target.drawImage(bitmap, 0, 0);
   return canvas.toDataURL("image/png");
+}
+
+function currentTimestamp(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+    now.getDate(),
+  )}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
 export default function App() {
@@ -70,7 +82,7 @@ export default function App() {
   const [result, setResult] = useState<ExportStats | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [exportName, setExportName] = useState("");
-  const [exportFileName, setExportFileName] = useState("");
+  const [exportTimestamp, setExportTimestamp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -268,8 +280,7 @@ export default function App() {
         break;
       case "exported": {
         const blob = new Blob([msg.bytes], { type: "image/gif" });
-        const fileName = buildExportFileName(exportName);
-        setExportFileName(fileName);
+        setExportTimestamp(currentTimestamp());
         setDownloadUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
           return URL.createObjectURL(blob);
@@ -382,7 +393,7 @@ export default function App() {
     if (!worker || !canExport) return;
     setPlaying(false);
     setResult(null);
-    setExportFileName("");
+    setExportTimestamp("");
     setError(null);
     setDownloadUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -429,6 +440,10 @@ export default function App() {
     !exporting &&
     !memoryBlock &&
     !outputBlock;
+
+  const exportFileName = exportTimestamp
+    ? buildExportFileNameWithTimestamp(exportName, exportTimestamp)
+    : "";
 
   return (
     <div className="app">
