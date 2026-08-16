@@ -8,6 +8,9 @@ export const CANDIDATES: CandidateSpec[] = [
   { lossy: 120, colors: 128 },
   { lossy: 150, colors: 64 },
   { lossy: 200, colors: 64 },
+  { lossy: 100, colors: 64 },
+  { lossy: 160, colors: 32 },
+  { lossy: 200, colors: 16 },
 ];
 
 export function selectBestCandidate(
