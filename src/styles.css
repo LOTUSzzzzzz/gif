@@ -13,6 +13,8 @@
 body {
   margin: 0;
   min-width: 320px;
+  background: #eef1f5 url("./assets/website-bg.png") center / cover no-repeat
+    fixed;
 }
 
 button,
@@ -86,7 +88,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: #f2f5f8;
+  background: rgba(242, 245, 248, 0.84);
   border-right: 1px solid #e2e7ed;
 }
 
@@ -471,7 +473,7 @@ input[type="range"] {
   justify-content: center;
   color: #98a2b3;
   cursor: row-resize;
-  background: #f2f5f8;
+  background: rgba(242, 245, 248, 0.84);
   border-top: 1px solid #e2e7ed;
   border-bottom: 1px solid #e2e7ed;
   user-select: none;
@@ -528,7 +530,7 @@ body.dragging-split {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: #1b1f27;
+  background: transparent;
   overflow: hidden;
 }
 
@@ -537,14 +539,14 @@ body.dragging-split {
   font-size: 15px;
   max-width: 320px;
   text-align: center;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
 }
 
 .stage-canvas {
   max-width: 100%;
   max-height: 100%;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  background-image: repeating-conic-gradient(#e8ecf1 0% 25%, #ffffff 0% 50%);
-  background-size: 16px 16px;
+  background: transparent;
 }
 
 .stage-controls {

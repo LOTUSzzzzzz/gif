@@ -226,6 +226,24 @@ export function SettingsPanel({
           ))}
         </select>
       </div>
+
+      <div className="field">
+        <label htmlFor="ssimThreshold">
+          画质 SSIM{" "}
+          <span className="value">{config.ssimThreshold.toFixed(2)}</span>
+        </label>
+        <input
+          id="ssimThreshold"
+          type="range"
+          min={0.9}
+          max={0.99}
+          step={0.01}
+          value={config.ssimThreshold}
+          disabled={disabled}
+          onChange={(e) => onChange({ ssimThreshold: Number(e.target.value) })}
+        />
+        <p className="field-hint">（数值越大精度越高）</p>
+      </div>
     </section>
   );
 }

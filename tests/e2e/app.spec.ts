@@ -16,6 +16,20 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
   page,
 }) => {
   await page.goto("/");
+  await expect(page.locator("#ssimThreshold")).toHaveValue("0.95");
+  await expect(page.getByText("数值越大精度越高")).toBeVisible();
+  await expect(
+    page.locator(".topbar .topbar-note").last(),
+  ).toHaveText("网站禁止商用，由蓝莲花制作");
+  const bodyBackground = await page.evaluate(
+    () => getComputedStyle(document.body).backgroundImage,
+  );
+  expect(bodyBackground).toContain("website-bg");
+  const stageBackground = await page.evaluate(() => {
+    const stage = document.querySelector(".stage");
+    return stage ? getComputedStyle(stage).backgroundColor : "";
+  });
+  expect(stageBackground).toBe("rgba(0, 0, 0, 0)");
 
   const fixtures = [0, 1, 2, 3].map((seed) => ({
     name: `grid-${seed}.gif`,

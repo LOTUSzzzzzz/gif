@@ -481,6 +481,7 @@ export default function App() {
           GIF Array Workshop
         </div>
         <div className="topbar-note">所有处理均在本地浏览器完成</div>
+        <div className="topbar-note">网站禁止商用，由蓝莲花制作</div>
       </header>
       <div className="layout">
         <aside className="sidebar">
