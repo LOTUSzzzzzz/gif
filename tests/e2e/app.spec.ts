@@ -68,6 +68,21 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
     return card ? getComputedStyle(card).backgroundColor : "";
   });
   expect(selectedBackground).toBe("rgb(219, 234, 254)");
+  const sidebar = page.locator(".sidebar-scroll");
+  const exportBefore = await page.locator(".export-btn").boundingBox();
+  await sidebar.evaluate((el) => {
+    el.scrollTop = 500;
+  });
+  const exportAfter = await page.locator(".export-btn").boundingBox();
+  expect(Math.abs(exportAfter!.y - exportBefore!.y)).toBeLessThan(2);
+  await sidebar.evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  const exportButtonBox = await page.locator(".export-btn").boundingBox();
+  const exportHintBox = await page.locator(".export-hint").boundingBox();
+  expect(exportHintBox!.y).toBeGreaterThanOrEqual(
+    exportButtonBox!.y + exportButtonBox!.height - 1,
+  );
   await expect(page.locator(".asset-card .asset-meta").first()).toContainText(
     "帧",
   );

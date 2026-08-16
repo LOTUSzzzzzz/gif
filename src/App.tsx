@@ -527,54 +527,58 @@ export default function App() {
       </header>
       <div className="layout">
         <aside className="sidebar">
-          <UploadZone onFiles={(files) => void addFiles(files)} disabled={exporting} />
-          {memoryWarn && (
-            <div className="banner warn">
-              解码内存预计约 {formatBytes(estimatedMemory)}，较大文件建议减少数量或降低输出。
-            </div>
-          )}
-          {memoryBlock && (
-            <div className="banner danger">
-              解码内存预计约 {formatBytes(estimatedMemory)}，超过 900MB 保护上限，请减少 GIF 数量后再导出。
-            </div>
-          )}
-          <AssetList
-            assets={assets}
-            selectedId={selectedAssetId}
-            onSelect={setSelectedAssetId}
-            onRemove={removeAsset}
-            onReorder={reorderAssets}
-            onClear={clearAssets}
-          />
-          <SettingsPanel
-            config={config}
-            rotation={selectedAsset?.rotation ?? 0}
-            speed={selectedAsset?.speed ?? 1}
-            speedMode={speedMode}
-            onSpeedModeChange={changeSpeedMode}
-            onRotationChange={changeRotation}
-            onSpeedChange={changeSpeed}
-            onChange={(patch) => setConfig((c) => ({ ...c, ...patch }))}
-            disabled={exporting}
-          />
-          {outputBlock && (
-            <div className="banner danger">
-              输出画布 {outputSize.width}×{outputSize.height} 超过 4096px 上限，请降低输出大小或列数。
-            </div>
-          )}
-          {error && <div className="banner danger">{error}</div>}
-          <button
-            type="button"
-            className="export-btn"
-            onClick={handleExport}
-            disabled={!canExport}
-          >
-            <Sparkles size={16} /> 开始智能导出
-          </button>
-          <p className="export-hint">
-            输出 {outputSize.width}×{outputSize.height} · {timeline.frameCount} 帧 · 约{" "}
-            {formatMs(timeline.durationMs)}
-          </p>
+          <div className="sidebar-scroll">
+            <UploadZone onFiles={(files) => void addFiles(files)} disabled={exporting} />
+            {memoryWarn && (
+              <div className="banner warn">
+                解码内存预计约 {formatBytes(estimatedMemory)}，较大文件建议减少数量或降低输出。
+              </div>
+            )}
+            {memoryBlock && (
+              <div className="banner danger">
+                解码内存预计约 {formatBytes(estimatedMemory)}，超过 900MB 保护上限，请减少 GIF 数量后再导出。
+              </div>
+            )}
+            <AssetList
+              assets={assets}
+              selectedId={selectedAssetId}
+              onSelect={setSelectedAssetId}
+              onRemove={removeAsset}
+              onReorder={reorderAssets}
+              onClear={clearAssets}
+            />
+            <SettingsPanel
+              config={config}
+              rotation={selectedAsset?.rotation ?? 0}
+              speed={selectedAsset?.speed ?? 1}
+              speedMode={speedMode}
+              onSpeedModeChange={changeSpeedMode}
+              onRotationChange={changeRotation}
+              onSpeedChange={changeSpeed}
+              onChange={(patch) => setConfig((c) => ({ ...c, ...patch }))}
+              disabled={exporting}
+            />
+            {outputBlock && (
+              <div className="banner danger">
+                输出画布 {outputSize.width}×{outputSize.height} 超过 4096px 上限，请降低输出大小或列数。
+              </div>
+            )}
+            {error && <div className="banner danger">{error}</div>}
+          </div>
+          <div className="sidebar-footer">
+            <button
+              type="button"
+              className="export-btn"
+              onClick={handleExport}
+              disabled={!canExport}
+            >
+              <Sparkles size={16} /> 开始智能导出
+            </button>
+            <p className="export-hint">
+              输出 {outputSize.width}×{outputSize.height} · {timeline.frameCount} 帧 · 约{" "}
+              {formatMs(timeline.durationMs)}
+            </p>
+          </div>
         </aside>
         <main className="stage-col" ref={stageColRef}>
           <PreviewStage
