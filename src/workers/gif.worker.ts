@@ -321,20 +321,7 @@ async function exportGif(config: GridConfig): Promise<void> {
     let bestSsim = 1;
     let bestSize = rawBytes.length;
 
-    if (config.backgroundColor === "transparent") {
-      results.push({
-        spec: { lossy: 0, colors: 256 },
-        sizeBytes: rawBytes.length,
-        ssim: 1,
-        accepted: true,
-      });
-      post({
-        type: "candidate",
-        result: results[0],
-        bestSizeBytes: null,
-      });
-    } else {
-      for (let ci = 0; ci < CANDIDATES.length; ci++) {
+    for (let ci = 0; ci < CANDIDATES.length; ci++) {
       if (cancelled) {
         post({ type: "cancelled" });
         return;
@@ -378,7 +365,6 @@ async function exportGif(config: GridConfig): Promise<void> {
         // 某个候选失败时跳过，继续尝试其他档位
       }
       }
-    }
 
     if (!acceptedAny && results.length > 0) {
       const smallest = results.reduce((a, b) =>

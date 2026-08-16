@@ -29,7 +29,7 @@ const DEFAULT_CONFIG: GridConfig = {
   backgroundColor: "transparent",
   scale: 1,
   maxDurationSec: 5,
-  sampleIntervalMs: 20,
+  sampleIntervalMs: 50,
   ssimThreshold: 1,
 };
 
