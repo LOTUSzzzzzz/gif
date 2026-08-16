@@ -334,9 +334,12 @@ async function exportGif(config: GridConfig): Promise<void> {
         detail: `lossy ${spec.lossy} / ${spec.colors} 色`,
       });
       try {
+        const optimizeArgs =
+          config.backgroundColor === "transparent"
+            ? ["--no-optimize", "--disposal=2"]
+            : ["-O2"];
         const output = await runGifsicle(rawBytes, [
-          "--no-optimize",
-          "--disposal=2",
+          ...optimizeArgs,
           `--lossy=${spec.lossy}`,
           `--colors=${spec.colors}`,
         ]);

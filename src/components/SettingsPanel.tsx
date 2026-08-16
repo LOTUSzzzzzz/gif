@@ -10,6 +10,7 @@ interface SettingsPanelProps {
 }
 
 const DURATIONS = [5, 10, 20, 30, 60, 120];
+const INTERVALS = [20, 50, 100];
 
 interface GridNumberFieldProps {
   id: string;
@@ -187,6 +188,24 @@ export function SettingsPanel({
           {DURATIONS.map((d) => (
             <option key={d} value={d}>
               {d} 秒
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="interval">采样间隔</label>
+        <select
+          id="interval"
+          value={config.sampleIntervalMs}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange({ sampleIntervalMs: Number(e.target.value) })
+          }
+        >
+          {INTERVALS.map((i) => (
+            <option key={i} value={i}>
+              {i}ms
             </option>
           ))}
         </select>
