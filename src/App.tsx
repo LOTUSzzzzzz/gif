@@ -77,6 +77,7 @@ export default function App() {
   const stageColRef = useRef<HTMLElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const previewPendingRef = useRef(false);
+  const lastPreviewStateRef = useRef({ key: "", t: 0 });
   const handlerRef = useRef<(e: MessageEvent<WorkerResponse>) => void>(
     () => {},
   );
@@ -117,6 +118,14 @@ export default function App() {
     [updateAssets],
   );
 
+  const currentPreviewKey = () =>
+    JSON.stringify({
+      config: configRef.current,
+      width: previewSizeRef.current.width,
+      height: previewSizeRef.current.height,
+      assets: assetsRef.current.map((a) => a.id).join(","),
+    });
+
   const requestPreview = useCallback((t: number) => {
     const worker = workerRef.current;
     if (!worker || assetsRef.current.length === 0 || previewPendingRef.current) {
@@ -124,6 +133,7 @@ export default function App() {
     }
     const size = previewSizeRef.current;
     previewPendingRef.current = true;
+    lastPreviewStateRef.current = { key: currentPreviewKey(), t };
     worker.postMessage({
       type: "preview",
       t,
@@ -239,6 +249,11 @@ export default function App() {
         }
         msg.bitmap.close();
         previewPendingRef.current = false;
+        const last = lastPreviewStateRef.current;
+        const stale =
+          currentPreviewKey() !== last.key ||
+          Math.abs(playTimeRef.current - last.t) > 40;
+        if (stale) requestPreview(playTimeRef.current);
         break;
       }
       case "progress":
