@@ -241,6 +241,8 @@ async function exportGif(config: GridConfig): Promise<void> {
     const canvas = new OffscreenCanvas(outputWidth, outputHeight);
     const target = canvas.getContext("2d")!;
     const encoder = GIFEncoder();
+    const compactEncoder =
+      config.backgroundColor === "transparent" ? GIFEncoder() : null;
     const sampleTimes = sampleIndexes(timeline.frameCount, 10).map(
       (i) => i * timeline.intervalMs,
     );
@@ -298,6 +300,53 @@ async function exportGif(config: GridConfig): Promise<void> {
         transparent: transparentIndex >= 0,
         transparentIndex: transparentIndex >= 0 ? transparentIndex : undefined,
       });
+      if (compactEncoder) {
+        const compactPalette = quantize(imageData.data, 128, {
+          format: "rgba4444",
+          oneBitAlpha: true,
+        });
+        const compactIndex = applyPalette(
+          imageData.data,
+          compactPalette,
+          "rgba4444",
+        );
+        let compactFramePalette = compactPalette;
+        let compactFrameIndex = compactIndex;
+        let compactTransparentIndex = compactPalette.findIndex(
+          (c) => (c[3] ?? 255) < 128,
+        );
+        if (compactTransparentIndex > 0) {
+          const swapped = compactPalette.slice();
+          const transparentColor = swapped[0];
+          swapped[0] = swapped[compactTransparentIndex];
+          swapped[compactTransparentIndex] = transparentColor;
+          const remapped = new Uint8Array(compactIndex.length);
+          for (let p = 0; p < compactIndex.length; p++) {
+            const v = compactIndex[p];
+            remapped[p] =
+              v === 0
+                ? compactTransparentIndex
+                : v === compactTransparentIndex
+                  ? 0
+                  : v;
+          }
+          compactFramePalette = swapped;
+          compactFrameIndex = remapped;
+          compactTransparentIndex = 0;
+        }
+        compactEncoder.writeFrame(
+          compactFrameIndex,
+          outputWidth,
+          outputHeight,
+          {
+            palette: compactFramePalette,
+            delay: timeline.intervalMs,
+            transparent: compactTransparentIndex >= 0,
+            transparentIndex:
+              compactTransparentIndex >= 0 ? compactTransparentIndex : undefined,
+          },
+        );
+      }
       if (i % progressEvery === 0 || i === timeline.frameCount - 1) {
         post({
           type: "progress",
@@ -310,6 +359,11 @@ async function exportGif(config: GridConfig): Promise<void> {
     post({ type: "progress", phase: "编码", percent: 50 });
     encoder.finish();
     const rawBytes = encoder.bytes();
+    let compactBytes: Uint8Array | null = null;
+    if (compactEncoder) {
+      compactEncoder.finish();
+      compactBytes = compactEncoder.bytes();
+    }
     post({ type: "progress", phase: "压缩", percent: 55 });
 
     const results: CandidateResult[] = [];
@@ -321,7 +375,36 @@ async function exportGif(config: GridConfig): Promise<void> {
     let bestSsim = 1;
     let bestSize = rawBytes.length;
 
-    for (let ci = 0; ci < CANDIDATES.length; ci++) {
+    if (compactBytes) {
+      results.push(
+        {
+          spec: { lossy: 0, colors: 256 },
+          sizeBytes: rawBytes.length,
+          ssim: 1,
+          accepted: true,
+        },
+        {
+          spec: { lossy: 0, colors: 128 },
+          sizeBytes: compactBytes.length,
+          ssim: 1,
+          accepted: true,
+        },
+      );
+      bestBytes = compactBytes;
+      bestSize = compactBytes.length;
+      bestSpec = { lossy: 0, colors: 128 };
+      post({
+        type: "candidate",
+        result: results[0],
+        bestSizeBytes: null,
+      });
+      post({
+        type: "candidate",
+        result: results[1],
+        bestSizeBytes: compactBytes.length,
+      });
+    } else {
+      for (let ci = 0; ci < CANDIDATES.length; ci++) {
       if (cancelled) {
         post({ type: "cancelled" });
         return;
@@ -368,6 +451,7 @@ async function exportGif(config: GridConfig): Promise<void> {
         // 某个候选失败时跳过，继续尝试其他档位
       }
       }
+    }
 
     if (!acceptedAny && results.length > 0) {
       const smallest = results.reduce((a, b) =>
