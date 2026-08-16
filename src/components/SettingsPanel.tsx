@@ -160,6 +160,8 @@ export function SettingsPanel({
             }
           />
           <label htmlFor="transparentBg">透明背景</label>
+        </div>
+        <div className="color-row">
           <input
             id="customBg"
             type="checkbox"
