@@ -292,6 +292,9 @@ async function exportGif(config: GridConfig): Promise<void> {
     post({ type: "progress", phase: "压缩", percent: 55 });
 
     const results: CandidateResult[] = [];
+    const threshold = Math.min(config.ssimThreshold, 0.98);
+    const outputs = new Map<string, Uint8Array>();
+    let acceptedAny = false;
     let bestBytes = rawBytes;
     let bestSpec: CandidateSpec = { lossy: 0, colors: 256 };
     let bestSsim = 1;
@@ -315,14 +318,16 @@ async function exportGif(config: GridConfig): Promise<void> {
           `--lossy=${spec.lossy}`,
           `--colors=${spec.colors}`,
         ]);
+        outputs.set(`${spec.lossy}-${spec.colors}`, output);
         const ssim = measureSsim(output, sampleTimes, refs);
         const result: CandidateResult = {
           spec,
           sizeBytes: output.length,
           ssim,
-          accepted: ssim >= config.ssimThreshold,
+          accepted: ssim >= threshold,
         };
         results.push(result);
+        if (result.accepted) acceptedAny = true;
         if (result.accepted && output.length < bestSize) {
           bestSize = output.length;
           bestBytes = output;
@@ -336,6 +341,20 @@ async function exportGif(config: GridConfig): Promise<void> {
         });
       } catch {
         // 某个候选失败时跳过，继续尝试其他档位
+      }
+    }
+
+    if (!acceptedAny && results.length > 0) {
+      const smallest = results.reduce((a, b) =>
+        a.sizeBytes < b.sizeBytes ? a : b,
+      );
+      const key = `${smallest.spec.lossy}-${smallest.spec.colors}`;
+      const smallestBytes = outputs.get(key);
+      if (smallestBytes && smallestBytes.length < bestSize) {
+        bestBytes = smallestBytes;
+        bestSize = smallestBytes.length;
+        bestSpec = smallest.spec;
+        bestSsim = smallest.ssim;
       }
     }
 
