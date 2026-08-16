@@ -77,37 +77,16 @@ export function ExportPanel({
             <strong>{result.ssim.toFixed(4)}</strong>
           </div>
           <div className="stat">
-            <span>采用参数</span>
+            <span>输出尺寸</span>
             <strong>
-              lossy {result.chosen.lossy} · {result.chosen.colors} 色
+              {result.outputWidth}×{result.outputHeight}
             </strong>
           </div>
         </div>
         <p className="export-meta">
-          {result.outputWidth}×{result.outputHeight} · {result.frameCount} 帧 ·{" "}
-          {formatMs(result.durationMs)}
+          {result.frameCount} 帧 · {formatMs(result.durationMs)} ·{" "}
+          {fileName}
         </p>
-        {result.candidates.length > 1 && (
-          <div className="candidate-table">
-            {result.candidates.map((c) => (
-              <div
-                key={`${c.spec.lossy}-${c.spec.colors}`}
-                className={`candidate-row${
-                  c.spec === result.chosen ? " chosen" : ""
-                }`}
-              >
-                <span className="candidate-params">
-                  lossy {c.spec.lossy} / {c.spec.colors} 色
-                </span>
-                <span>{formatBytes(c.sizeBytes)}</span>
-                <span>SSIM {c.ssim.toFixed(3)}</span>
-                <span className={c.accepted ? "tag ok" : "tag bad"}>
-                  {c.accepted ? "达标" : "未达阈值"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </section>
     );
   }

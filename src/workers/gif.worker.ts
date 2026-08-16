@@ -50,8 +50,10 @@ function drawGrid(
   height: number,
 ): void {
   if (assets.length === 0) return;
-  target.fillStyle = config.backgroundColor;
-  target.fillRect(0, 0, width, height);
+  if (config.backgroundColor && config.backgroundColor !== "transparent") {
+    target.fillStyle = config.backgroundColor;
+    target.fillRect(0, 0, width, height);
+  }
   const geometry = computeGridGeometry(
     assets.length,
     config,
@@ -255,11 +257,25 @@ async function exportGif(config: GridConfig): Promise<void> {
       if (sampleSet.has(i)) {
         refs.push({ timeMs: t, luma: downscaleLuma(imageData, 512) });
       }
-      const palette = quantize(imageData.data, 256);
-      const index = applyPalette(imageData.data, palette);
+      const useTransparency = config.backgroundColor === "transparent";
+      const palette = quantize(
+        imageData.data,
+        256,
+        useTransparency ? { format: "rgba4444", oneBitAlpha: true } : undefined,
+      );
+      const index = applyPalette(
+        imageData.data,
+        palette,
+        useTransparency ? "rgba4444" : undefined,
+      );
+      const transparentIndex = useTransparency
+        ? palette.findIndex((c) => (c[3] ?? 255) < 128)
+        : -1;
       encoder.writeFrame(index, outputWidth, outputHeight, {
         palette,
         delay: timeline.intervalMs,
+        transparent: transparentIndex >= 0,
+        transparentIndex: transparentIndex >= 0 ? transparentIndex : undefined,
       });
       if (i % progressEvery === 0 || i === timeline.frameCount - 1) {
         post({

@@ -148,10 +148,26 @@ export function SettingsPanel({
         <label htmlFor="background">背景色</label>
         <div className="color-row">
           <input
+            id="transparentBg"
+            type="checkbox"
+            checked={config.backgroundColor === "transparent"}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange({
+                backgroundColor: e.target.checked ? "transparent" : "#ffffff",
+              })
+            }
+          />
+          <label htmlFor="transparentBg">透明背景</label>
+          <input
             id="background"
             type="color"
-            value={config.backgroundColor}
-            disabled={disabled}
+            value={
+              config.backgroundColor === "transparent"
+                ? "#ffffff"
+                : config.backgroundColor
+            }
+            disabled={disabled || config.backgroundColor === "transparent"}
             onChange={(e) => onChange({ backgroundColor: e.target.value })}
           />
           <code>{config.backgroundColor}</code>
