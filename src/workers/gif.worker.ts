@@ -62,7 +62,11 @@ function drawGrid(
     gridCellSize(),
   );
   const totalCells = geometry.rows * geometry.columns;
-  for (let i = 0; i < totalCells; i++) {
+  const cellCount =
+    geometry.rows === 1 && geometry.columns === 1 && assets.length > 1
+      ? 1
+      : totalCells;
+  for (let i = 0; i < cellCount; i++) {
     const asset = assets[i % assets.length];
     const player = asset.player;
     const column = i % geometry.columns;
