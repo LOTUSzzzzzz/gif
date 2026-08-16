@@ -318,7 +318,8 @@ async function exportGif(config: GridConfig): Promise<void> {
       });
       try {
         const output = await runGifsicle(rawBytes, [
-          "-O3",
+          "--no-optimize",
+          "--disposal=2",
           `--lossy=${spec.lossy}`,
           `--colors=${spec.colors}`,
         ]);
