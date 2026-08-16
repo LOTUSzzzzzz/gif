@@ -19,6 +19,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { PreviewStage } from "./components/PreviewStage";
 import { ExportPanel } from "./components/ExportPanel";
 import { computeExportTimeline } from "./lib/timeline";
+import { effectiveSampleIntervalMs, gridCellCount } from "./lib/exportPolicy";
 import { computeOutputSize } from "./lib/layout";
 import {
   buildExportFileNameWithTimestamp,
@@ -34,7 +35,7 @@ const DEFAULT_CONFIG: GridConfig = {
   scale: 1,
   maxDurationSec: 5,
   sampleIntervalMs: 50,
-  ssimThreshold: 1,
+  ssimThreshold: 0.95,
 };
 
 const MEMORY_WARN = 300 * 1024 * 1024;
@@ -241,7 +242,7 @@ export default function App() {
     workerRef.current = worker;
     worker.onmessage = (event) => handlerRef.current(event);
     return () => {
-      worker.terminate();
+      workerRef.current?.terminate();
       workerRef.current = null;
     };
   }, []);
@@ -306,15 +307,28 @@ export default function App() {
     }
   };
 
-  const timeline = useMemo(
-    () =>
-      computeExportTimeline(
-        assets.map((a) => a.meta?.durationMs ?? 0),
-        config.maxDurationSec * 1000,
-        config.sampleIntervalMs,
-      ),
-    [assets, config.maxDurationSec, config.sampleIntervalMs],
-  );
+  const timeline = useMemo(() => {
+    const cellCount = gridCellCount(
+      assets.length,
+      config.columns,
+      config.rows,
+    );
+    const intervalMs = effectiveSampleIntervalMs(
+      config.sampleIntervalMs,
+      cellCount,
+    );
+    return computeExportTimeline(
+      assets.map((a) => a.meta?.durationMs ?? 0),
+      config.maxDurationSec * 1000,
+      intervalMs,
+    );
+  }, [
+    assets,
+    config.columns,
+    config.rows,
+    config.maxDurationSec,
+    config.sampleIntervalMs,
+  ]);
   const durationRef = useRef(timeline.durationMs);
   durationRef.current = timeline.durationMs;
 
@@ -387,6 +401,20 @@ export default function App() {
     setPlayTime(t);
     setPlaying(false);
   }, []);
+
+  const cancelExport = useCallback(() => {
+    workerRef.current?.terminate();
+    const worker = new Worker(
+      new URL("./workers/gif.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    workerRef.current = worker;
+    worker.onmessage = (event) => handlerRef.current(event);
+    setExporting(false);
+    setExportHeight(120);
+    previewPendingRef.current = false;
+    void sendPrepare(assetsRef.current);
+  }, [sendPrepare]);
 
   const handleExport = () => {
     const worker = workerRef.current;
@@ -546,7 +574,7 @@ export default function App() {
             error={error}
             height={exportHeight}
             fileName={exportFileName}
-            onCancel={() => workerRef.current?.postMessage({ type: "cancel" })}
+            onCancel={cancelExport}
           />
         </main>
       </div>

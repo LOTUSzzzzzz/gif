@@ -37,3 +37,44 @@ export function makeFixtureGif(options: FixtureGifOptions): Uint8Array {
   encoder.finish();
   return encoder.bytes();
 }
+
+export function makeTransparentFixtureGif(
+  options: FixtureGifOptions,
+): Uint8Array {
+  const { width, height, frameCount, delayMs, seed } = options;
+  const encoder = GIFEncoder();
+  const square = Math.max(6, Math.round(width * 0.25));
+  for (let frame = 0; frame < frameCount; frame++) {
+    const rgba = new Uint8Array(width * height * 4);
+    const sx =
+      frameCount > 1
+        ? Math.round(
+            (frame * (width - square)) / Math.max(1, frameCount - 1),
+          )
+        : 0;
+    const sy = (seed * 7 + frame * 5) % Math.max(1, height - square);
+    for (let y = sy; y < sy + square; y++) {
+      for (let x = sx; x < sx + square; x++) {
+        const i = (y * width + x) * 4;
+        rgba[i] = (frame * 31 + seed * 17) % 256;
+        rgba[i + 1] = (seed * 29 + x * 3) % 256;
+        rgba[i + 2] = (y * 5 + seed * 11) % 256;
+        rgba[i + 3] = 255;
+      }
+    }
+    const palette = quantize(rgba, 256, {
+      format: "rgba4444",
+      oneBitAlpha: true,
+    });
+    const index = applyPalette(rgba, palette, "rgba4444");
+    const transparentIndex = palette.findIndex((c) => (c[3] ?? 255) < 128);
+    encoder.writeFrame(index, width, height, {
+      palette,
+      delay: delayMs,
+      transparent: transparentIndex >= 0,
+      transparentIndex: transparentIndex >= 0 ? transparentIndex : undefined,
+    });
+  }
+  encoder.finish();
+  return encoder.bytes();
+}

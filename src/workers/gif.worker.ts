@@ -1,8 +1,14 @@
 import { GIFEncoder, quantize, applyPalette } from "gifenc";
 import { GifPlayer } from "../lib/gifPlayer";
 import { runGifsicle } from "../lib/gifsicle";
+import { repairTransparentGif } from "../lib/gifRepair";
 import { CANDIDATES } from "../lib/candidates";
 import { computeExportTimeline, sampleIndexes } from "../lib/timeline";
+import {
+  effectiveSampleIntervalMs,
+  effectiveSsimThreshold,
+  gridCellCount,
+} from "../lib/exportPolicy";
 import {
   computeGridGeometry,
   computeOutputSize,
@@ -50,6 +56,7 @@ function drawGrid(
   height: number,
 ): void {
   if (assets.length === 0) return;
+  target.clearRect(0, 0, width, height);
   if (config.backgroundColor && config.backgroundColor !== "transparent") {
     target.fillStyle = config.backgroundColor;
     target.fillRect(0, 0, width, height);
@@ -67,6 +74,7 @@ function drawGrid(
       ? 1
       : totalCells;
   for (let i = 0; i < cellCount; i++) {
+    if (cancelled) return;
     const asset = assets[i % assets.length];
     const player = asset.player;
     const column = i % geometry.columns;
@@ -218,10 +226,19 @@ async function exportGif(config: GridConfig): Promise<void> {
   if (assets.length === 0) return;
   cancelled = false;
   try {
+    const cellCount = gridCellCount(
+      assets.length,
+      config.columns,
+      config.rows,
+    );
+    const intervalMs = effectiveSampleIntervalMs(
+      config.sampleIntervalMs,
+      cellCount,
+    );
     const timeline = computeExportTimeline(
       assets.map((a) => a.player.durationMs),
       config.maxDurationSec * 1000,
-      config.sampleIntervalMs,
+      intervalMs,
     );
     const outputSize = computeOutputSize(
       assets.length,
@@ -259,6 +276,10 @@ async function exportGif(config: GridConfig): Promise<void> {
       }
       const t = i * timeline.intervalMs;
       drawGrid(target, t, config, outputWidth, outputHeight);
+      if (cancelled) {
+        post({ type: "cancelled" });
+        return;
+      }
       const imageData = target.getImageData(0, 0, outputWidth, outputHeight);
       if (sampleSet.has(i)) {
         refs.push({ timeMs: t, luma: downscaleLuma(imageData, 512) });
@@ -286,6 +307,10 @@ async function exportGif(config: GridConfig): Promise<void> {
         swapped[transparentIndex] = transparentColor;
         const remapped = new Uint8Array(index.length);
         for (let p = 0; p < index.length; p++) {
+          if ((p & 0xffff) === 0 && cancelled) {
+            post({ type: "cancelled" });
+            return;
+          }
           const v = index[p];
           remapped[p] =
             v === 0 ? transparentIndex : v === transparentIndex ? 0 : v;
@@ -301,6 +326,10 @@ async function exportGif(config: GridConfig): Promise<void> {
         transparentIndex: transparentIndex >= 0 ? transparentIndex : undefined,
       });
       if (compactEncoder) {
+        if (cancelled) {
+          post({ type: "cancelled" });
+          return;
+        }
         const compactPalette = quantize(imageData.data, 128, {
           format: "rgba4444",
           oneBitAlpha: true,
@@ -322,6 +351,10 @@ async function exportGif(config: GridConfig): Promise<void> {
           swapped[compactTransparentIndex] = transparentColor;
           const remapped = new Uint8Array(compactIndex.length);
           for (let p = 0; p < compactIndex.length; p++) {
+            if ((p & 0xffff) === 0 && cancelled) {
+              post({ type: "cancelled" });
+              return;
+            }
             const v = compactIndex[p];
             remapped[p] =
               v === 0
@@ -367,7 +400,7 @@ async function exportGif(config: GridConfig): Promise<void> {
     post({ type: "progress", phase: "压缩", percent: 55 });
 
     const results: CandidateResult[] = [];
-    const threshold = Math.min(config.ssimThreshold, 0.98);
+    const threshold = effectiveSsimThreshold(config.ssimThreshold, cellCount);
     const outputs = new Map<string, Uint8Array>();
     let acceptedAny = false;
     let bestBytes = rawBytes;
@@ -404,7 +437,23 @@ async function exportGif(config: GridConfig): Promise<void> {
         bestSizeBytes: compactBytes.length,
       });
     } else {
-      for (let ci = 0; ci < CANDIDATES.length; ci++) {
+      results.push({
+        spec: { lossy: 0, colors: 256 },
+        sizeBytes: rawBytes.length,
+        ssim: 1,
+        accepted: true,
+      });
+      bestBytes = rawBytes;
+      bestSize = rawBytes.length;
+      bestSpec = { lossy: 0, colors: 256 };
+    }
+
+    const optimizeArgs =
+      config.backgroundColor === "transparent"
+        ? ["-O3", "--disposal=2"]
+        : ["-O2"];
+
+    for (let ci = 0; ci < CANDIDATES.length; ci++) {
       if (cancelled) {
         post({ type: "cancelled" });
         return;
@@ -417,15 +466,15 @@ async function exportGif(config: GridConfig): Promise<void> {
         detail: `lossy ${spec.lossy} / ${spec.colors} 色`,
       });
       try {
-        const optimizeArgs =
-          config.backgroundColor === "transparent"
-            ? ["--no-optimize", "--disposal=2"]
-            : ["-O2"];
-        const output = await runGifsicle(rawBytes, [
+        const gifsicleOutput = await runGifsicle(rawBytes, [
           ...optimizeArgs,
           `--lossy=${spec.lossy}`,
           `--colors=${spec.colors}`,
         ]);
+        const output =
+          config.backgroundColor === "transparent"
+            ? repairTransparentGif(gifsicleOutput)
+            : gifsicleOutput;
         outputs.set(`${spec.lossy}-${spec.colors}`, output);
         const ssim = measureSsim(output, sampleTimes, refs);
         const result: CandidateResult = {
@@ -449,7 +498,6 @@ async function exportGif(config: GridConfig): Promise<void> {
         });
       } catch {
         // 某个候选失败时跳过，继续尝试其他档位
-      }
       }
     }
 

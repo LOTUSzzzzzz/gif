@@ -40,8 +40,12 @@ describe("candidate selection", () => {
     expect(selectBestCandidate([], 0.95)).toEqual({ lossy: 0, colors: 256 });
   });
 
-  it("has seven fixed candidates", () => {
-    expect(CANDIDATES).toHaveLength(7);
+  it("has ten fixed candidates", () => {
+    expect(CANDIDATES).toHaveLength(10);
     expect(CANDIDATES[0]).toEqual({ lossy: 0, colors: 256 });
+    expect(CANDIDATES[CANDIDATES.length - 1]).toEqual({
+      lossy: 200,
+      colors: 16,
+    });
   });
 });
