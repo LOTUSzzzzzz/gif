@@ -272,11 +272,28 @@ async function exportGif(config: GridConfig): Promise<void> {
         palette,
         useTransparency ? "rgba4444" : undefined,
       );
-      const transparentIndex = useTransparency
+      let framePalette = palette;
+      let frameIndex = index;
+      let transparentIndex = useTransparency
         ? palette.findIndex((c) => (c[3] ?? 255) < 128)
         : -1;
-      encoder.writeFrame(index, outputWidth, outputHeight, {
-        palette,
+      if (useTransparency && transparentIndex > 0) {
+        const swapped = palette.slice();
+        const transparentColor = swapped[0];
+        swapped[0] = swapped[transparentIndex];
+        swapped[transparentIndex] = transparentColor;
+        const remapped = new Uint8Array(index.length);
+        for (let p = 0; p < index.length; p++) {
+          const v = index[p];
+          remapped[p] =
+            v === 0 ? transparentIndex : v === transparentIndex ? 0 : v;
+        }
+        framePalette = swapped;
+        frameIndex = remapped;
+        transparentIndex = 0;
+      }
+      encoder.writeFrame(frameIndex, outputWidth, outputHeight, {
+        palette: framePalette,
         delay: timeline.intervalMs,
         transparent: transparentIndex >= 0,
         transparentIndex: transparentIndex >= 0 ? transparentIndex : undefined,
@@ -304,7 +321,20 @@ async function exportGif(config: GridConfig): Promise<void> {
     let bestSsim = 1;
     let bestSize = rawBytes.length;
 
-    for (let ci = 0; ci < CANDIDATES.length; ci++) {
+    if (config.backgroundColor === "transparent") {
+      results.push({
+        spec: { lossy: 0, colors: 256 },
+        sizeBytes: rawBytes.length,
+        ssim: 1,
+        accepted: true,
+      });
+      post({
+        type: "candidate",
+        result: results[0],
+        bestSizeBytes: null,
+      });
+    } else {
+      for (let ci = 0; ci < CANDIDATES.length; ci++) {
       if (cancelled) {
         post({ type: "cancelled" });
         return;
@@ -346,6 +376,7 @@ async function exportGif(config: GridConfig): Promise<void> {
         });
       } catch {
         // 某个候选失败时跳过，继续尝试其他档位
+      }
       }
     }
 
