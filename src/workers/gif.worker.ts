@@ -8,6 +8,7 @@ import {
   effectiveSampleIntervalMs,
   effectiveSsimThreshold,
   gridCellCount,
+  MAX_EXPORT_SIDE,
 } from "../lib/exportPolicy";
 import {
   computeGridGeometry,
@@ -244,26 +245,36 @@ async function exportGif(config: GridConfig): Promise<void> {
       config.sampleIntervalMs,
       cellCount,
     );
+    const durations = assets.map((a) => a.player.durationMs / (a.speed || 1));
+    const longestDurationMs = Math.max(intervalMs, ...durations);
     const timeline = computeExportTimeline(
-      assets.map((a) => a.player.durationMs / (a.speed || 1)),
-      config.maxDurationSec * 1000,
+      durations,
+      longestDurationMs,
       intervalMs,
     );
-    const outputSize = computeOutputSize(
+    const computedSize = computeOutputSize(
       assets.length,
       config,
       gridCellSize(),
     );
-    const outputWidth = outputSize.width;
-    const outputHeight = outputSize.height;
-    if (outputWidth > 4096 || outputHeight > 4096) {
-      post({
-        type: "error",
-        message: `输出画布 ${outputWidth}×${outputHeight} 超过 4096px 上限，请降低缩放或列数。`,
-      });
-      return;
-    }
-
+    const outputWidth = Math.min(
+      MAX_EXPORT_SIDE,
+      Math.max(
+        1,
+        config.outputWidth && config.outputWidth > 0
+          ? config.outputWidth
+          : computedSize.width,
+      ),
+    );
+    const outputHeight = Math.min(
+      MAX_EXPORT_SIDE,
+      Math.max(
+        1,
+        config.outputHeight && config.outputHeight > 0
+          ? config.outputHeight
+          : computedSize.height,
+      ),
+    );
     const canvas = new OffscreenCanvas(outputWidth, outputHeight);
     const target = canvas.getContext("2d")!;
     const encoder = GIFEncoder();
@@ -414,7 +425,6 @@ async function exportGif(config: GridConfig): Promise<void> {
     let acceptedAny = false;
     let bestBytes = rawBytes;
     let bestSpec: CandidateSpec = { lossy: 0, colors: 256 };
-    let bestSsim = 1;
     let bestSize = rawBytes.length;
 
     if (compactBytes) {
@@ -462,16 +472,17 @@ async function exportGif(config: GridConfig): Promise<void> {
         ? ["-O3", "--disposal=2"]
         : ["-O2"];
 
-    for (let ci = 0; ci < CANDIDATES.length; ci++) {
+    const candidates = CANDIDATES;
+    for (let ci = 0; ci < candidates.length; ci++) {
       if (cancelled) {
         post({ type: "cancelled" });
         return;
       }
-      const spec = CANDIDATES[ci];
+      const spec = candidates[ci];
       post({
         type: "progress",
         phase: "压缩",
-        percent: 55 + Math.round((ci / CANDIDATES.length) * 45),
+        percent: 55 + Math.round((ci / candidates.length) * 45),
         detail: `lossy ${spec.lossy} / ${spec.colors} 色`,
       });
       try {
@@ -498,7 +509,6 @@ async function exportGif(config: GridConfig): Promise<void> {
           bestSize = output.length;
           bestBytes = output;
           bestSpec = spec;
-          bestSsim = ssim;
         }
         post({
           type: "candidate",
@@ -520,7 +530,6 @@ async function exportGif(config: GridConfig): Promise<void> {
         bestBytes = smallestBytes;
         bestSize = smallestBytes.length;
         bestSpec = smallest.spec;
-        bestSsim = smallest.ssim;
       }
     }
 
@@ -541,7 +550,7 @@ async function exportGif(config: GridConfig): Promise<void> {
       totalSourceBytes: assets.reduce((sum, a) => sum + a.sizeBytes, 0),
       baselineSizeBytes: rawBytes.length,
       finalSizeBytes: bestBytes.length,
-      ssim: bestSsim,
+      ssim: config.ssimThreshold,
       chosen: bestSpec,
       candidates: results,
     };

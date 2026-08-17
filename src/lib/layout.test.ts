@@ -8,7 +8,6 @@ const baseConfig: GridConfig = {
   gap: 10,
   backgroundColor: "#ffffff",
   scale: 1,
-  maxDurationSec: 20,
   sampleIntervalMs: 50,
   ssimThreshold: 0.95,
 };

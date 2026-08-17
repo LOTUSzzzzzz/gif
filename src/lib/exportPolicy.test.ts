@@ -3,12 +3,18 @@ import {
   effectiveSampleIntervalMs,
   effectiveSsimThreshold,
   gridCellCount,
+  MAX_EXPORT_SIDE,
 } from "./exportPolicy";
 
 describe("export policy", () => {
   it("resolves grid cell count with auto rows", () => {
     expect(gridCellCount(4, 2, 0)).toBe(4);
     expect(gridCellCount(10, 10, 10)).toBe(100);
+    expect(gridCellCount(10, 50, 50)).toBe(100);
+  });
+
+  it("exposes the 1024 cap", () => {
+    expect(MAX_EXPORT_SIDE).toBe(1024);
   });
 
   it("raises the sample interval for large grids", () => {

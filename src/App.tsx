@@ -4,9 +4,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
-import { GripHorizontal, Sparkles } from "lucide-react";
+import { Pause, Play, Sparkles } from "lucide-react";
 import type {
   ExportStats,
   GifAsset,
@@ -19,7 +18,11 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { PreviewStage } from "./components/PreviewStage";
 import { ExportPanel } from "./components/ExportPanel";
 import { computeExportTimeline } from "./lib/timeline";
-import { effectiveSampleIntervalMs, gridCellCount } from "./lib/exportPolicy";
+import {
+  effectiveSampleIntervalMs,
+  gridCellCount,
+  MAX_EXPORT_SIDE,
+} from "./lib/exportPolicy";
 import { computeOutputSize } from "./lib/layout";
 import {
   buildExportFileNameWithTimestamp,
@@ -33,14 +36,13 @@ const DEFAULT_CONFIG: GridConfig = {
   gap: 0,
   backgroundColor: "transparent",
   scale: 1,
-  maxDurationSec: 5,
   sampleIntervalMs: 50,
   ssimThreshold: 0.95,
 };
 
 const MEMORY_WARN = 300 * 1024 * 1024;
 const MEMORY_BLOCK = 900 * 1024 * 1024;
-const MAX_OUTPUT_SIDE = 4096;
+const MAX_OUTPUT_SIDE = MAX_EXPORT_SIDE;
 
 function bitmapToDataUrl(bitmap: ImageBitmap): string {
   const canvas = document.createElement("canvas");
@@ -74,7 +76,7 @@ export default function App() {
   const previewSizeRef = useRef(previewSize);
   previewSizeRef.current = previewSize;
   const [exporting, setExporting] = useState(false);
-  const [exportHeight, setExportHeight] = useState(120);
+  const [exportHeight, setExportHeight] = useState(200);
   const [progress, setProgress] = useState({
     percent: 0,
     phase: "",
@@ -82,13 +84,12 @@ export default function App() {
   });
   const [result, setResult] = useState<ExportStats | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [exportName, setExportName] = useState("");
+  const [exportName, setExportName] = useState("GIF");
   const [exportTimestamp, setExportTimestamp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [speedMode, setSpeedMode] = useState<"single" | "all">("single");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const stageColRef = useRef<HTMLElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const previewPendingRef = useRef(false);
   const lastPreviewStateRef = useRef({ key: "", t: 0 });
@@ -330,20 +331,20 @@ export default function App() {
         });
         setResult(msg.stats);
         setExporting(false);
-        setExportHeight(380);
+        setExportHeight(200);
         previewPendingRef.current = false;
         break;
       }
       case "cancelled":
         setExporting(false);
-        setExportHeight(120);
+        setExportHeight(200);
         previewPendingRef.current = false;
         break;
       case "error":
         setError(msg.message);
         setExporting(false);
         setPreparing(false);
-        setExportHeight(120);
+        setExportHeight(200);
         previewPendingRef.current = false;
         break;
     }
@@ -359,40 +360,78 @@ export default function App() {
       config.sampleIntervalMs,
       cellCount,
     );
+    const durations = assets.map(
+      (a) => (a.meta?.durationMs ?? 0) / (a.speed ?? 1),
+    );
+    const longestDurationMs = Math.max(intervalMs, ...durations);
     return computeExportTimeline(
-      assets.map((a) => (a.meta?.durationMs ?? 0) / (a.speed ?? 1)),
-      config.maxDurationSec * 1000,
+      durations,
+      longestDurationMs,
       intervalMs,
     );
   }, [
     assets,
     config.columns,
     config.rows,
-    config.maxDurationSec,
     config.sampleIntervalMs,
   ]);
   const durationRef = useRef(timeline.durationMs);
   durationRef.current = timeline.durationMs;
 
-  const outputSize = useMemo(
-    () => {
-      let cellWidth = 1;
-      let cellHeight = 1;
-      for (const asset of assets) {
-        if (asset.meta) {
-          cellWidth = Math.max(cellWidth, asset.meta.width);
-          cellHeight = Math.max(cellHeight, asset.meta.height);
-        }
+  const autoOutputSize = useMemo(() => {
+    if (assets.length === 0) return { width: 0, height: 0 };
+    let cellWidth = 1;
+    let cellHeight = 1;
+    for (const asset of assets) {
+      if (asset.meta) {
+        cellWidth = Math.max(cellWidth, asset.meta.width);
+        cellHeight = Math.max(cellHeight, asset.meta.height);
       }
-      return computeOutputSize(assets.length, config, {
-        width: cellWidth,
-        height: cellHeight,
-      });
-    },
-    [assets, config],
+    }
+    const computed = computeOutputSize(assets.length, config, {
+      width: cellWidth,
+      height: cellHeight,
+    });
+    return {
+      width: Math.min(MAX_EXPORT_SIDE, computed.width),
+      height: Math.min(MAX_EXPORT_SIDE, computed.height),
+    };
+  }, [assets, config]);
+  const outputSize = useMemo(
+    () => ({
+      width:
+        config.outputWidth && config.outputWidth > 0
+          ? Math.min(MAX_EXPORT_SIDE, config.outputWidth)
+          : autoOutputSize.width,
+      height:
+        config.outputHeight && config.outputHeight > 0
+          ? Math.min(MAX_EXPORT_SIDE, config.outputHeight)
+          : autoOutputSize.height,
+    }),
+    [autoOutputSize, config.outputWidth, config.outputHeight],
   );
   const aspect =
     outputSize.height > 0 ? outputSize.width / outputSize.height : 1;
+
+  const setOutputSize = useCallback(
+    (size: { width: number; height: number }) => {
+      setConfig((c) => ({
+        ...c,
+        outputWidth: size.width,
+        outputHeight: size.height,
+      }));
+    },
+    [],
+  );
+
+  const resetOutputSize = useCallback(() => {
+    setConfig((c) => {
+      const next = { ...c };
+      delete next.outputWidth;
+      delete next.outputHeight;
+      return next;
+    });
+  }, []);
 
   const handlePreviewSize = useCallback(
     (size: { width: number; height: number }) => {
@@ -453,7 +492,7 @@ export default function App() {
     workerRef.current = worker;
     worker.onmessage = (event) => handlerRef.current(event);
     setExporting(false);
-    setExportHeight(120);
+    setExportHeight(200);
     previewPendingRef.current = false;
     void sendPrepare(assetsRef.current);
   }, [sendPrepare]);
@@ -471,33 +510,9 @@ export default function App() {
     });
     setProgress({ percent: 0, phase: "准备", detail: null });
     setExporting(true);
-    setExportHeight(300);
+    setExportHeight(200);
     worker.postMessage({ type: "export", config: configRef.current });
   };
-
-  const startDividerDrag = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      const container = stageColRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      const onMove = (ev: globalThis.MouseEvent) => {
-        const next = rect.bottom - ev.clientY;
-        setExportHeight(
-          Math.max(120, Math.min(Math.round(next), rect.height - 160)),
-        );
-      };
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-        document.body.classList.remove("dragging-split");
-      };
-      document.body.classList.add("dragging-split");
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [],
-  );
 
   const memoryWarn =
     estimatedMemory > MEMORY_WARN && estimatedMemory <= MEMORY_BLOCK;
@@ -549,6 +564,10 @@ export default function App() {
             />
             <SettingsPanel
               config={config}
+              outputSize={outputSize}
+              autoOutputSize={autoOutputSize}
+              onOutputSizeChange={setOutputSize}
+              onOutputSizeReset={resetOutputSize}
               rotation={selectedAsset?.rotation ?? 0}
               speed={selectedAsset?.speed ?? 1}
               speedMode={speedMode}
@@ -560,7 +579,7 @@ export default function App() {
             />
             {outputBlock && (
               <div className="banner danger">
-                输出画布 {outputSize.width}×{outputSize.height} 超过 4096px 上限，请降低输出大小或列数。
+                输出画布 {outputSize.width}×{outputSize.height} 超过 1024px 上限，请降低输出大小或列数。
               </div>
             )}
             {error && <div className="banner danger">{error}</div>}
@@ -580,53 +599,58 @@ export default function App() {
             </p>
           </div>
         </aside>
-        <main className="stage-col" ref={stageColRef}>
+        <main className="stage-col">
           <PreviewStage
             canvasRef={canvasRef}
             hasAssets={assets.length > 0}
-            playing={playing}
-            playTime={playTime}
-            durationMs={timeline.durationMs}
-            exporting={exporting}
             aspect={aspect}
             onPreviewSize={handlePreviewSize}
-            onTogglePlay={() => setPlaying((p) => !p)}
-            onSeek={handleSeek}
           />
-          <div
-            className="splitter"
-            onMouseDown={startDividerDrag}
-            title="拖动调整预览与导出结果的大小"
-          >
-            <GripHorizontal size={16} />
-          </div>
-          <div className="export-name-bar">
-            <label htmlFor="exportName">导出名称</label>
-            <input
-              id="exportName"
-              type="text"
-              value={exportName}
-              maxLength={60}
-              placeholder="gif-grid（留空使用默认名称）"
-              disabled={exporting}
-              onChange={(e) => setExportName(e.target.value)}
-            />
-            <span>自动追加时间戳</span>
-          </div>
-          <ExportPanel
-            exporting={exporting}
-            progress={{
-              percent: progress.percent,
-              phase: progress.phase,
-              detail: progress.detail,
-            }}
-            result={result}
-            downloadUrl={downloadUrl}
-            error={error}
+          <section className="preview-export-panel">
+            <div className="playback-bar">
+              <button
+                type="button"
+                className="play-btn"
+                title={playing ? "暂停" : "播放"}
+                onClick={() => setPlaying((p) => !p)}
+                disabled={exporting}
+              >
+                {playing ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <input
+                className="time-slider"
+                type="range"
+                min={0}
+                max={Math.max(1, timeline.durationMs)}
+                step={10}
+                value={Math.min(playTime, Math.max(1, timeline.durationMs))}
+                disabled={exporting}
+                onChange={(e) => handleSeek(Number(e.target.value))}
+              />
+              <span className="time-label">
+                {formatMs(playTime)} / {formatMs(timeline.durationMs)}
+              </span>
+              {exporting && <span className="exporting-label">导出中…</span>}
+            </div>
+            <ExportPanel
+              exporting={exporting}
+              progress={{
+                percent: progress.percent,
+                phase: progress.phase,
+                detail: progress.detail,
+              }}
+              result={result}
+              downloadUrl={downloadUrl}
+              error={error}
             height={exportHeight}
             fileName={exportFileName}
+            exportName={exportName}
+            onExportNameChange={setExportName}
+            frameCount={timeline.frameCount}
+            durationMs={timeline.durationMs}
             onCancel={cancelExport}
-          />
+            />
+          </section>
         </main>
       </div>
     </div>

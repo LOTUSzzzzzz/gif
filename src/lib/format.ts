@@ -32,6 +32,6 @@ export function buildExportFileNameWithTimestamp(
   customName: string,
   timestamp: string,
 ): string {
-  const base = customName.trim() || "gif-grid";
-  return `${base}_${timestamp}.gif`;
+  const base = customName.trim() || "GIF";
+  return `${base}-${timestamp}.gif`;
 }

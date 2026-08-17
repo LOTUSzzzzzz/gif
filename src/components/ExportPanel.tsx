@@ -1,6 +1,6 @@
 import { Download, Loader2, X } from "lucide-react";
 import type { ExportStats } from "../types";
-import { formatBytes, formatMs, formatReduction } from "../lib/format";
+import { formatBytes, formatMs } from "../lib/format";
 
 interface ExportPanelProps {
   exporting: boolean;
@@ -10,7 +10,11 @@ interface ExportPanelProps {
   error: string | null;
   height: number;
   fileName: string;
+  exportName: string;
+  onExportNameChange: (value: string) => void;
   onCancel: () => void;
+  frameCount: number;
+  durationMs: number;
 }
 
 export function ExportPanel({
@@ -21,83 +25,72 @@ export function ExportPanel({
   error,
   height,
   fileName,
+  exportName,
+  onExportNameChange,
   onCancel,
+  frameCount,
+  durationMs,
 }: ExportPanelProps) {
-  if (exporting) {
-    return (
-      <section className="export-panel" style={{ height, overflowY: "auto" }}>
-        <div className="export-row">
-          <Loader2 className="spin" size={18} />
-          <div className="export-status">
-            <strong>{progress.phase}</strong>
-            {progress.detail && <span>{progress.detail}</span>}
-          </div>
-          <button type="button" className="ghost-btn" onClick={onCancel}>
-            <X size={15} /> 取消
-          </button>
-        </div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${progress.percent}%` }} />
-        </div>
-        <span className="progress-label">{progress.percent}%</span>
-      </section>
-    );
-  }
-
-  if (result && downloadUrl) {
-    return (
-      <section className="export-panel" style={{ height, overflowY: "auto" }}>
-        <div className="export-head">
-          <h2>导出结果</h2>
-          <a className="primary-btn" href={downloadUrl} download={fileName}>
-            <Download size={16} /> 下载 GIF（{formatBytes(result.finalSizeBytes)}）
-          </a>
-        </div>
-        <div className="stats-grid">
-          <div className="stat">
-            <span>原文件合计</span>
-            <strong>{formatBytes(result.totalSourceBytes)}</strong>
-          </div>
-          <div className="stat">
-            <span>压缩前</span>
-            <strong>{formatBytes(result.baselineSizeBytes)}</strong>
-          </div>
-          <div className="stat">
-            <span>压缩后</span>
-            <strong>{formatBytes(result.finalSizeBytes)}</strong>
-          </div>
-          <div className="stat">
-            <span>体积变化</span>
-            <strong>
-              {formatReduction(result.baselineSizeBytes, result.finalSizeBytes)}
-            </strong>
-          </div>
-          <div className="stat">
-            <span>画质 SSIM</span>
-            <strong>{result.ssim.toFixed(4)}</strong>
-          </div>
-          <div className="stat">
-            <span>输出尺寸</span>
-            <strong>
-              {result.outputWidth}×{result.outputHeight}
-            </strong>
-          </div>
-        </div>
-        <p className="export-meta">
-          {result.frameCount} 帧 · {formatMs(result.durationMs)} ·{" "}
-          {fileName}
-        </p>
-      </section>
-    );
-  }
+  const canDownload = Boolean(result && downloadUrl);
+  const after = result ? formatBytes(result.finalSizeBytes) : "—";
+  const frames = result ? result.frameCount : frameCount;
+  const duration = result ? formatMs(result.durationMs) : formatMs(durationMs);
+  const metaName = fileName || exportName;
 
   return (
     <section className="export-panel" style={{ height, overflowY: "auto" }}>
-      <div className="export-idle">
-        <strong>等待导出</strong>
-        <span>配置好网格后，点击左侧「开始智能导出」</span>
-        {error && <span className="error-text">{error}</span>}
+      <div className="export-name-row">
+        <label htmlFor="exportName">导出名称</label>
+        <input
+          id="exportName"
+          type="text"
+          value={exportName}
+          maxLength={60}
+          disabled={exporting}
+          onChange={(e) => onExportNameChange(e.target.value)}
+        />
+        <span>自动追加时间戳</span>
       </div>
+
+      {exporting && (
+        <>
+          <div className="export-row">
+            <Loader2 className="spin" size={18} />
+            <div className="export-status">
+              <strong>{progress.phase}</strong>
+              {progress.detail && <span>{progress.detail}</span>}
+            </div>
+            <button type="button" className="ghost-btn" onClick={onCancel}>
+              <X size={15} /> 取消
+            </button>
+          </div>
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+          <span className="progress-label">{progress.percent}%</span>
+        </>
+      )}
+
+      {error && !exporting && <div className="banner danger">{error}</div>}
+
+      <div className="export-head">
+        {canDownload ? (
+          <a className="primary-btn" href={downloadUrl!} download={fileName}>
+            <Download size={16} /> 下载 GIF（{after}）
+          </a>
+        ) : (
+          <button type="button" className="primary-btn" disabled>
+            <Download size={16} /> 下载 GIF
+          </button>
+        )}
+      </div>
+
+      <p className="export-meta">
+        {frames} 帧 · {duration} · {metaName}
+      </p>
     </section>
   );
 }

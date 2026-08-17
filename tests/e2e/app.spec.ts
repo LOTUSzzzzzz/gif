@@ -2,16 +2,6 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { makeFixtureGif } from "../helpers/fixtures";
 
-function parseBytes(text: string): number {
-  const match = text.match(/([\d.]+)\s*(B|KB|MB)/);
-  if (!match) return 0;
-  const value = Number(match[1]);
-  const unit = match[2];
-  if (unit === "KB") return value * 1024;
-  if (unit === "MB") return value * 1024 * 1024;
-  return value;
-}
-
 test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
   page,
 }) => {
@@ -21,10 +11,10 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
   await expect(
     page.locator(".topbar .topbar-note").last(),
   ).toHaveText("网站禁止商用，由蓝莲花制作");
-  const bodyBackground = await page.evaluate(
-    () => getComputedStyle(document.body).backgroundImage,
+  const bodyBackgroundColor = await page.evaluate(
+    () => getComputedStyle(document.body).backgroundColor,
   );
-  expect(bodyBackground).toContain("website-bg");
+  expect(bodyBackgroundColor).toBe("rgb(255, 255, 255)");
   const stageBackground = await page.evaluate(() => {
     const stage = document.querySelector(".stage");
     return stage ? getComputedStyle(stage).backgroundColor : "";
@@ -86,6 +76,21 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
   await expect(page.locator(".asset-card .asset-meta").first()).toContainText(
     "帧",
   );
+  await expect(page.locator("#columns")).toHaveAttribute("max", "10");
+  await expect(page.locator("#rows")).toHaveAttribute("max", "10");
+  await expect(
+    page.getByText("小于 1024×1024 保持原尺寸，超过自动压缩到 1024×1024"),
+  ).toBeVisible();
+  await expect(page.locator("#outputWidth")).toHaveValue("32");
+  await expect(page.locator("#outputHeight")).toHaveValue("32");
+  await page.fill("#outputWidth", "64");
+  await expect(page.locator("#outputHeight")).toHaveValue("64");
+  await page.locator(".lock-btn").click();
+  await page.fill("#outputHeight", "100");
+  await expect(page.locator("#outputWidth")).toHaveValue("64");
+  await page.getByRole("button", { name: "重置为原大小" }).click();
+  await expect(page.locator("#outputWidth")).toHaveValue("32");
+  await expect(page.locator("#outputHeight")).toHaveValue("32");
 
   await expect
     .poll(
@@ -120,11 +125,9 @@ test("uploads GIFs, previews the grid, and exports a compressed GIF", async ({
   expect(bytes.length).toBeGreaterThan(0);
 
   const panelText = await page.locator(".export-panel").innerText();
-  const beforeMatch = panelText.match(/压缩前\n([\d.]+ (?:B|KB|MB))/);
-  const afterMatch = panelText.match(/压缩后\n([\d.]+ (?:B|KB|MB))/);
-  expect(beforeMatch).toBeTruthy();
-  expect(afterMatch).toBeTruthy();
-  expect(parseBytes(afterMatch![1])).toBeLessThanOrEqual(
-    parseBytes(beforeMatch![1]),
-  );
+  expect(panelText).toContain("下载 GIF");
+
+  await page.getByRole("button", { name: "清空" }).click();
+  await expect(page.locator("#outputWidth")).toHaveValue("0");
+  await expect(page.locator("#outputHeight")).toHaveValue("0");
 });

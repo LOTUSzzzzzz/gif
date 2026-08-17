@@ -29,5 +29,9 @@ test("cancel stops a large-grid export immediately", async ({ page }) => {
   await cancel.click();
 
   await expect(cancel).toHaveCount(0, { timeout: 10_000 });
-  await expect(page.locator(".export-idle")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".export-panel .export-head")).toContainText(
+    "下载 GIF",
+    { timeout: 30_000 },
+  );
+  await expect(page.locator(".export-panel .primary-btn")).toBeDisabled();
 });

@@ -22,9 +22,10 @@ export interface GridConfig {
   gap: number;
   backgroundColor: string;
   scale: number;
-  maxDurationSec: number;
   sampleIntervalMs: number;
   ssimThreshold: number;
+  outputWidth?: number;
+  outputHeight?: number;
 }
 
 export interface CandidateSpec {

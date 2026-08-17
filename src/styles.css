@@ -1,7 +1,7 @@
 :root {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   color: #1f2430;
-  background: #eef1f5;
+  background: #ffffff;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -13,8 +13,7 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: #eef1f5 url("./assets/website-bg.png") center / cover no-repeat
-    fixed;
+  background: #ffffff;
 }
 
 button,
@@ -343,6 +342,49 @@ button:disabled {
   font-weight: 600;
 }
 
+.output-size-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.output-size-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+  margin: 0;
+}
+
+.output-size-row .number-input {
+  width: 72px;
+  flex: 0 0 auto;
+}
+
+.lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475467;
+}
+
+.lock-btn.active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.output-reset-btn {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
 .field-hint {
   margin: 6px 0 0;
   color: #98a2b3;
@@ -557,6 +599,37 @@ input[type="range"] {
   font-size: 12px;
 }
 
+.export-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e2e7ed;
+}
+
+.export-name-row label {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+}
+
+.export-name-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e2e7ed;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #344054;
+}
+
+.export-name-row span {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
 body.dragging-split {
   cursor: row-resize;
   user-select: none;
@@ -575,6 +648,8 @@ body.dragging-split {
 }
 
 .stage-empty {
+  position: relative;
+  z-index: 1;
   color: #8b93a3;
   font-size: 15px;
   max-width: 320px;
@@ -582,7 +657,53 @@ body.dragging-split {
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
 }
 
+.preview-export-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  background: #ffffff;
+  border: 1px solid #e2e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stage-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.preview-export-panel .splitter {
+  flex: 0 0 auto;
+  background: #f2f5f8;
+  border: none;
+}
+
+.playback-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid #e2e7ed;
+  border-bottom: 1px solid #e2e7ed;
+  background: rgba(242, 245, 248, 0.6);
+}
+
+.preview-export-panel .export-panel {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0 16px 14px;
+}
+
 .stage-canvas {
+  position: relative;
+  z-index: 1;
   max-width: 100%;
   max-height: 100%;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);

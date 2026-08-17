@@ -24,13 +24,13 @@ export interface CellSize {
 }
 
 export function resolveRows(assetCount: number, config: GridConfig): number {
-  const maxRows = 50;
+  const maxRows = 10;
   if (config.rows > 0) {
     return Math.max(1, Math.min(maxRows, Math.round(config.rows)));
   }
   return Math.max(
     1,
-    Math.ceil(assetCount / Math.max(1, Math.min(50, config.columns))),
+    Math.ceil(assetCount / Math.max(1, Math.min(10, config.columns))),
   );
 }
 
@@ -41,7 +41,7 @@ export function computeGridGeometry(
   canvasHeight: number,
   cellSize: CellSize = { width: 1, height: 1 },
 ): GridGeometry {
-  const columns = Math.max(1, Math.min(50, config.columns));
+  const columns = Math.max(1, Math.min(10, config.columns));
   const rows = resolveRows(assetCount, config);
   const usableWidth = canvasWidth - config.gap * (columns - 1);
   const usableHeight = canvasHeight - config.gap * (rows - 1);
@@ -81,7 +81,7 @@ export function computeOutputSize(
   config: GridConfig,
   cellSize: CellSize = { width: 1, height: 1 },
 ): OutputSize {
-  const columns = Math.max(1, Math.min(50, config.columns));
+  const columns = Math.max(1, Math.min(10, config.columns));
   const rows = resolveRows(assetCount, config);
   const cellW = Math.max(1, cellSize.width);
   const cellH = Math.max(1, cellSize.height);

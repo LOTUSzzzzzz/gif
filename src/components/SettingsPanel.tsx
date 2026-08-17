@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
+import { Lock, Unlock } from "lucide-react";
 import type { GridConfig } from "../types";
 
 interface SettingsPanelProps {
   config: GridConfig;
+  outputSize: { width: number; height: number };
+  autoOutputSize: { width: number; height: number };
+  onOutputSizeChange: (size: { width: number; height: number }) => void;
+  onOutputSizeReset: () => void;
   rotation: number;
   speed: number;
   speedMode: "single" | "all";
@@ -13,7 +18,6 @@ interface SettingsPanelProps {
   disabled?: boolean;
 }
 
-const DURATIONS = [5, 10, 20, 30, 60, 120];
 const INTERVALS = [20, 50, 100];
 
 interface GridNumberFieldProps {
@@ -158,8 +162,120 @@ function SpeedField({
   );
 }
 
+function OutputSizeField({
+  value,
+  autoSize,
+  onSizeChange,
+  onReset,
+  disabled,
+}: {
+  value: { width: number; height: number };
+  autoSize: { width: number; height: number };
+  onSizeChange: (size: { width: number; height: number }) => void;
+  onReset: () => void;
+  disabled?: boolean;
+}) {
+  const [locked, setLocked] = useState(true);
+  const [widthText, setWidthText] = useState(String(value.width));
+  const [heightText, setHeightText] = useState(String(value.height));
+
+  useEffect(() => {
+    setWidthText(String(value.width));
+    setHeightText(String(value.height));
+  }, [value.width, value.height]);
+
+  const ratio =
+    value.width > 0 && value.height > 0
+      ? value.width / value.height
+      : autoSize.width / Math.max(1, autoSize.height);
+  const clamp = (n: number) => Math.max(1, Math.round(n));
+
+  const applyWidth = (raw: string) => {
+    setWidthText(raw);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const width = clamp(n);
+    const height = locked
+      ? Math.max(1, Math.round(width / ratio))
+      : value.height;
+    onSizeChange({ width, height });
+  };
+
+  const applyHeight = (raw: string) => {
+    setHeightText(raw);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const height = clamp(n);
+    const width = locked
+      ? Math.max(1, Math.round(height * ratio))
+      : value.width;
+    onSizeChange({ width, height });
+  };
+
+  return (
+    <div className="field">
+      <label htmlFor="outputWidth">
+        输出大小{" "}
+        <span className="value">
+          {value.width}×{value.height}
+        </span>
+      </label>
+      <div className="output-size-row">
+        <label htmlFor="outputWidth">宽</label>
+        <input
+          id="outputWidth"
+          className="number-input"
+          type="number"
+          min={1}
+          step={1}
+          value={widthText}
+          disabled={disabled}
+          onChange={(e) => applyWidth(e.target.value)}
+          onBlur={() => setWidthText(String(value.width))}
+        />
+        <label htmlFor="outputHeight">高</label>
+        <input
+          id="outputHeight"
+          className="number-input"
+          type="number"
+          min={1}
+          step={1}
+          value={heightText}
+          disabled={disabled}
+          onChange={(e) => applyHeight(e.target.value)}
+          onBlur={() => setHeightText(String(value.height))}
+        />
+        <button
+          type="button"
+          className={`lock-btn${locked ? " active" : ""}`}
+          title={locked ? "锁定比例" : "解锁比例"}
+          disabled={disabled}
+          onClick={() => setLocked((prev) => !prev)}
+        >
+          {locked ? <Lock size={14} /> : <Unlock size={14} />}
+        </button>
+      </div>
+      <button
+        type="button"
+        className="ghost-btn output-reset-btn"
+        disabled={disabled}
+        onClick={onReset}
+      >
+        重置为原大小
+      </button>
+      <p className="field-hint">
+        小于 1024×1024 保持原尺寸，超过自动压缩到 1024×1024
+      </p>
+    </div>
+  );
+}
+
 export function SettingsPanel({
   config,
+  outputSize,
+  autoOutputSize,
+  onOutputSizeChange,
+  onOutputSizeReset,
   rotation,
   speed,
   speedMode,
@@ -180,8 +296,8 @@ export function SettingsPanel({
         label="列数"
         value={config.columns}
         min={1}
-        max={50}
-        hint="1-50"
+        max={10}
+        hint="1-10"
         disabled={disabled}
         onChange={(columns) => onChange({ columns })}
       />
@@ -191,8 +307,8 @@ export function SettingsPanel({
         label="行数"
         value={config.rows}
         min={0}
-        max={50}
-        hint="0 表示自动，最多 50 行"
+        max={10}
+        hint="0 表示自动，最多 10 行"
         disabled={disabled}
         onChange={(rows) => onChange({ rows })}
       />
@@ -214,6 +330,14 @@ export function SettingsPanel({
         mode={speedMode}
         onModeChange={onSpeedModeChange}
         onChange={onSpeedChange}
+        disabled={disabled}
+      />
+
+      <OutputSizeField
+        value={outputSize}
+        autoSize={autoOutputSize}
+        onSizeChange={onOutputSizeChange}
+        onReset={onOutputSizeReset}
         disabled={disabled}
       />
 
@@ -279,22 +403,6 @@ export function SettingsPanel({
               : config.backgroundColor}
           </code>
         </div>
-      </div>
-
-      <div className="field">
-        <label htmlFor="maxDuration">时长上限</label>
-        <select
-          id="maxDuration"
-          value={config.maxDurationSec}
-          disabled={disabled}
-          onChange={(e) => onChange({ maxDurationSec: Number(e.target.value) })}
-        >
-          {DURATIONS.map((d) => (
-            <option key={d} value={d}>
-              {d} 秒
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="field">
